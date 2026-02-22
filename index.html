@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>深夜ホテル: Corridor Escape MVP</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="game-shell">
+    <h1 class="game-title">深夜ホテル: Corridor Escape</h1>
+
+    <div class="canvas-wrap">
+      <canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="ゲーム画面"></canvas>
+
+      <div id="titleScreen" class="overlay">
+        <h2>深夜ホテル</h2>
+        <p>Corridor Escape</p>
+        <button id="startGameButton" type="button">ゲームスタート</button>
+      </div>
+
+      <div id="endingScreen" class="overlay hidden">
+        <h2 id="endingTitle">Escaped</h2>
+        <p id="endingText">やっと…外だ。</p>
+        <p class="overlay-help">Rキーでリスタート</p>
+      </div>
+
+      <div id="pauseAudioPanel" class="pause-audio hidden">
+        <button id="muteAudioButton" class="audio-mute-btn" type="button">音声ミュート</button>
+        <label for="bgmVolume">BGM Volume</label>
+        <input id="bgmVolume" type="range" min="0" max="1" step="0.01" value="0.5" />
+        <span id="bgmVolumeValue">50%</span>
+        <label for="ambientVolume">環境音 Volume</label>
+        <input id="ambientVolume" type="range" min="0" max="1" step="0.01" value="0.35" />
+        <span id="ambientVolumeValue">35%</span>
+        <label for="darknessStrength">暗さ調整</label>
+        <input id="darknessStrength" type="range" min="0.7" max="1" step="0.01" value="0.9" />
+        <span id="darknessStrengthValue">0.90</span>
+        <label class="reduce-flash">
+          <input id="reduceFlash" type="checkbox" />
+          フラッシュ軽減
+        </label>
+      </div>
+    </div>
+
+    <section class="hud">
+      <div class="player-name">プレイヤー: 悠斗</div>
+      <div class="emotion-state" id="emotionText">感情: 安心</div>
+      <div class="inventory" aria-live="polite">
+        <strong>タスク進行:</strong>
+        <span id="inventoryText">0 / 3</span>
+      </div>
+      <div class="objective" id="objectiveText">目的（ホテルタスク）
+[ ] Task A: 1Fフロントで宿泊台帳を調べる
+[ ] Task B: 2F客室203でカードキーを回収
+[ ] Task C: B1で非常電源(ブレーカー)をON
+[ ] 1F非常口から脱出</div>
+      <div class="memo" id="memoText">メモ: まだ何も見つかっていない。</div>
+      <div class="controls">移動: WASD / 矢印 | 調べる: E / Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H</div>
+    </section>
+  </main>
+
+  <script src="game.js"></script>
+</body>
+</html>
