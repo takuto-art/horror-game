@@ -60,7 +60,7 @@ const HITBOX_INSET_Y = 5;
 // Chaser tuning: playerより少し遅めにして、理不尽にしすぎない。
 const CHASER_SPRITE_W = 18;
 const CHASER_SPRITE_H = 26;
-const CHASER_HITBOX_INSET = 4;
+const CHASER_HITBOX_INSET = 5;
 const CHASER_BASE_SPEED = 118;
 const CHASER_RUSH_SPEED = 138;
 const CHASER_SPAWN_DELAY = 1.5;
@@ -1920,8 +1920,8 @@ function createMap3BasementData() {
     rect(760, 140, 180, 20),
     // メイン廊下の下壁（階段上は開放。ドア開口と位置を一致）
     rect(320, 400, 350, 20),
-    rect(710, 400, 140, 20),
-    rect(890, 400, 50, 20),
+    rect(710, 400, 126, 20),
+    rect(888, 400, 52, 20),
     // 上段の縦仕切り
     rect(320, 20, 20, 120),
     rect(620, 20, 20, 120),
@@ -2034,9 +2034,9 @@ function createMap3BasementData() {
     {
       id: "b1_door_lower_right_2",
       label: "",
-      x: 850,
+      x: 836,
       y: 400,
-      w: 40,
+      w: 52,
       h: 20,
       color: "#6b5846",
       blocking: true,
@@ -2076,21 +2076,10 @@ function createMap3BasementData() {
       interaction: [{ speaker: "悠斗", text: "金属ロッカー。中に隠れられる。" }],
     },
     {
-      id: "b1_hide_wardrobe_b",
-      label: "保守ロッカー",
-      x: 912,
-      y: 250,
-      w: 26,
-      h: 96,
-      color: "#4b5564",
-      blocking: true,
-      interaction: [{ speaker: "悠斗", text: "ここも身を隠せる。息を整えよう。" }],
-    },
-    {
       id: "control_console",
       label: "制御卓",
       x: 900,
-      y: 270,
+      y: 250,
       w: 40,
       h: 120,
       color: "#5a5f4f",
@@ -2186,6 +2175,8 @@ function createInitialGameState() {
       spawnDelay: CHASER_SPAWN_DELAY,
       detourSign: 1,
       detourLockTimer: 0,
+      wallSlideTimer: 0,
+      wallSlideSign: 1,
       introLockTimer: 0,
       hitLockTimer: 0,
       stuckTimer: 0,
@@ -2265,6 +2256,7 @@ function createInitialGameState() {
       b1FeedingRetreatWarned: false,
       b1FeedingChaseTriggered: false,
       b1DoorAmbushTriggered: false,
+      b1TaskCAutoAmbushPending: false,
       room203ExitAmbushTriggered: false,
       room203HideSurvived: false,
       room204205ReappearTriggered: false,
@@ -2584,7 +2576,6 @@ function update(dt) {
 
   movePlayer(dt);
   updateB1FeedingEvent();
-  updateB1TaskCAutoAmbush();
   updateFinalChaseTrigger();
   updateSafeSpot(dt);
   updateChaser(dt);
@@ -3070,16 +3061,35 @@ function updateChaser(dt) {
   const dx = playerCenter.x - chaserCenter.x;
   const dy = playerCenter.y - chaserCenter.y;
   const distance = Math.hypot(dx, dy) || 1;
+  const ndx = dx / distance;
+  const ndy = dy / distance;
+  const px = -ndy;
+  const py = ndx;
   const speed = game.player.speed;
   const step = speed * dt;
-  const moveX = (dx / distance) * step;
-  const moveY = (dy / distance) * step;
+  const moveX = ndx * step;
+  const moveY = ndy * step;
   const beforeX = game.chaser.x;
   const beforeY = game.chaser.y;
-  moveChaserWithDetour(moveX, moveY);
+  if (game.chaser.wallSlideTimer > 0) {
+    game.chaser.wallSlideTimer = Math.max(0, game.chaser.wallSlideTimer - dt);
+    const slid = moveChaserWallSlide(step, px, py, game.chaser.wallSlideSign);
+    if (!slid) {
+      // 逆側も試して、どちらか通ればその向きを採用する。
+      game.chaser.wallSlideSign *= -1;
+      moveChaserWallSlide(step, px, py, game.chaser.wallSlideSign);
+    }
+  } else {
+    moveChaserWithDetour(moveX, moveY);
+  }
   const moved = Math.hypot(game.chaser.x - beforeX, game.chaser.y - beforeY);
   if (moved < 0.2) {
     game.chaser.stuckTimer += dt;
+    // 数百msだけ壁沿いモードに切り替えて、角ハマりを抜ける。
+    if (game.chaser.wallSlideTimer <= 0 && game.chaser.stuckTimer >= 0.28) {
+      game.chaser.wallSlideTimer = 0.48;
+      game.chaser.wallSlideSign = game.chaser.detourSign || (Math.random() > 0.5 ? 1 : -1);
+    }
     if (game.chaser.stuckTimer >= 0.9) {
       rescueChaserFromStuck();
       game.chaser.stuckTimer = 0;
@@ -3096,6 +3106,26 @@ function updateChaser(dt) {
   if (game.chaser.hitLockTimer <= 0 && rectsOverlap(playerHitbox, chaserHitbox)) {
     triggerCaughtEnding();
   }
+}
+
+function moveChaserWallSlide(step, px, py, sign) {
+  const amount = Math.max(0.5, step * 0.9);
+  const sx = px * sign * amount;
+  const sy = py * sign * amount;
+
+  const tryMoveSplit = (dx, dy, slices = 3) => {
+    const mx = dx / slices;
+    const my = dy / slices;
+    let moved = false;
+    for (let i = 0; i < slices; i += 1) {
+      const a = tryMoveChaser(game.chaser.x + mx, game.chaser.y);
+      const b = tryMoveChaser(game.chaser.x, game.chaser.y + my);
+      if (a || b) moved = true;
+    }
+    return moved;
+  };
+
+  return tryMoveSplit(sx, sy, 3);
 }
 
 function updateRoom204205ReappearTrigger() {
@@ -3202,7 +3232,18 @@ function updateFinalChaseTrigger() {
   game.flags.forceChaseActive = true;
   game.flags.chaserGone = false;
   game.flags.chaserAwakened = true;
-  placeChaserInCurrentMap(0.55);
+  const spawn = spawnSafePosition(game.world, { x: 48, y: 48 });
+  game.chaser.x = spawn.x;
+  game.chaser.y = spawn.y;
+  game.chaser.mapId = "map1";
+  game.chaser.spawnDelay = 0.55;
+  game.chaser.active = false;
+  game.chaser.detourSign = 1;
+  game.chaser.detourLockTimer = 0;
+  game.chaser.stuckTimer = 0;
+  game.chaser.lastX = game.chaser.x;
+  game.chaser.lastY = game.chaser.y;
+  triggerChaserSpawnCue(0.8, "左上");
   setEmotion("恐怖");
   game.latestMemo = "ロビーの空気が変わった。来る。";
 }
@@ -3308,20 +3349,21 @@ function startB1DoorAmbushChase() {
   game.b1DoorAmbush.secondSpawnDone = false;
 
   // 1体目は右下区画の中に出現（右端寄りにして即接触を避ける）。
-  const firstSpawn = spawnSafePosition(game.world, { x: 868, y: 456 });
+  const firstSpawn = spawnSafePosition(game.world, { x: 900, y: 392 });
   game.chaser.x = firstSpawn.x;
   game.chaser.y = firstSpawn.y;
   game.chaser.mapId = "map3";
-  game.chaser.spawnDelay = 0.22;
+  game.chaser.spawnDelay = 0.10;
   game.chaser.active = false;
   game.chaser.detourSign = -1;
   game.chaser.detourLockTimer = 0;
   game.chaser.stuckTimer = 0;
   game.chaser.lastX = game.chaser.x;
   game.chaser.lastY = game.chaser.y;
-  triggerChaserSpawnCue(1.25, "右下の部屋");
-  game.chaser.introLockTimer = 1.0;
-  game.chaser.hitLockTimer = 1.35;
+  // 安定優先: B1初回アンブッシュは軽量通知のみ（重い出現キューは使わない）。
+  triggerSpawnNoticeOnly("右下の部屋", 1.2);
+  game.chaser.introLockTimer = 0.40;
+  game.chaser.hitLockTimer = 0.65;
   setEmotion("恐怖");
   game.latestMemo = "影が形を持って現れた……今のうちに走れ。";
   playScareSE();
@@ -3362,64 +3404,13 @@ function updateB1DoorAmbush(dt) {
   }
 
   ambush.timer += dt;
-  if (!ambush.secondSpawnDone && ambush.timer >= 3.8) {
-    ambush.secondSpawnDone = true;
-    // 2体目は左上から出現。
-    const secondSpawn = spawnSafePosition(game.world, { x: 72, y: 86 });
-    game.chaser.x = secondSpawn.x;
-    game.chaser.y = secondSpawn.y;
-    game.chaser.mapId = "map3";
-    game.chaser.spawnDelay = 0.15;
-    game.chaser.active = false;
-    game.chaser.detourSign = 1;
-    game.chaser.detourLockTimer = 0;
-    game.chaser.stuckTimer = 0;
-    game.chaser.lastX = game.chaser.x;
-    game.chaser.lastY = game.chaser.y;
-    triggerChaserSpawnCue(1.1, "左上の通路");
-    game.chaser.introLockTimer = 0.8;
-    game.chaser.hitLockTimer = 1.0;
-    game.latestMemo = "左側にも影が出た。挟まれる。";
-    playScareSE();
-    playMenaaaSE();
-  }
-
   if (ambush.timer >= 8.5) {
     ambush.active = false;
   }
 }
 
 function updateB1TaskCAutoAmbush() {
-  // Cタスク後、右下区画の中央 or 通路中央に来たら自動で同じ挟み込み演出を発火する。
-  if (game.mapId !== "map3") return;
-  if (!game.tasks.taskCBreaker) return;
-  if (game.flags.b1DoorAmbushTriggered) return;
-  if (game.ending || game.paused || dialogue.active || mapManager.transition.active || game.hide.active) return;
-
-  const center = getCenter(game.player);
-  const inLowerRightRoomCenter =
-    center.x >= 835 &&
-    center.x <= 915 &&
-    center.y >= 450 &&
-    center.y <= 510;
-  const inB1CorridorMiddle =
-    center.x >= 440 &&
-    center.x <= 540 &&
-    center.y >= 240 &&
-    center.y <= 320;
-  if (!inLowerRightRoomCenter && !inB1CorridorMiddle) return;
-
-  game.flags.b1FeedingChaseTriggered = true;
-  game.flags.b1FeedingNoticed = true;
-  dialogue.start([
-    { speaker: "悠斗", text: "……まずい。ここ、静かすぎる。" },
-    { speaker: "悠斗", text: "気配が近い……来る！" },
-  ], {
-    autoAdvanceMs: 900,
-    onComplete: () => {
-      startB1DoorAmbushChase();
-    },
-  });
+  // 単一トリガー化: 地下追跡は右下ドア初回のみで開始する。
 }
 
 function updateLinenRoomEvent() {
@@ -3456,6 +3447,12 @@ function triggerChaserSpawnCue(duration = 0.7, areaHint = "") {
   game.effects.chaserSpawnNoticeText = `追跡者出現: ${areaHint || getSpawnAreaName(game.effects.chaserSpawnCueX, game.effects.chaserSpawnCueY, game.mapId)}`;
   vibrateIfSupported([24, 40, 24]);
   playDissonanceSE();
+}
+
+function triggerSpawnNoticeOnly(areaHint = "", duration = 1.2) {
+  game.effects.chaserSpawnCueTimer = 0;
+  game.effects.chaserSpawnNoticeTimer = duration;
+  game.effects.chaserSpawnNoticeText = `追跡者出現: ${areaHint || getSpawnAreaName(game.chaser.x, game.chaser.y, game.mapId)}`;
 }
 
 function getSpawnAreaName(x, y, mapId) {
@@ -6330,17 +6327,17 @@ function drawDarknessOverlay() {
 
   const baseDarkness = getMapDarknessBase();
   const darknessMultiplierByLight = game.lightOn
-    ? 1.08
+    ? 1.26
     : game.mapId === "map2" || game.mapId === "map3"
       ? 1.20
-      : 1.72;
+      : 1.90;
   const darkness = Math.max(0, Math.min(1, baseDarkness * game.settings.darknessMultiplier * darknessMultiplierByLight));
   if (darkness <= 0.01) return;
 
   const centerX = game.player.x + game.player.w / 2;
   const centerY = game.player.y + game.player.h / 2;
-  const offRadius = 64;
-  const radius = game.hide.active ? 44 : game.lightOn ? 160 : offRadius;
+  const offRadius = 56;
+  const radius = game.hide.active ? 40 : game.lightOn ? 144 : offRadius;
 
   // 暗闇はオフスクリーンに作って最後に合成する。
   darknessCtx.clearRect(0, 0, 960, 540);
@@ -6837,6 +6834,7 @@ function restoreFromCheckpoint() {
   if (typeof game.flags.b1FeedingRetreatWarned === "undefined") game.flags.b1FeedingRetreatWarned = false;
   if (typeof game.flags.b1FeedingChaseTriggered === "undefined") game.flags.b1FeedingChaseTriggered = false;
   if (typeof game.flags.b1DoorAmbushTriggered === "undefined") game.flags.b1DoorAmbushTriggered = false;
+  if (typeof game.flags.b1TaskCAutoAmbushPending === "undefined") game.flags.b1TaskCAutoAmbushPending = false;
   if (typeof game.flags.b1EntryForeshadowPlayed === "undefined") game.flags.b1EntryForeshadowPlayed = false;
   if (typeof game.flags.b1ReturnTalkPlayed === "undefined") game.flags.b1ReturnTalkPlayed = false;
   if (typeof game.flags.room203ExitAmbushTriggered === "undefined") game.flags.room203ExitAmbushTriggered = false;
@@ -6865,6 +6863,8 @@ function restoreFromCheckpoint() {
   if (typeof game.chaser.stuckTimer === "undefined") game.chaser.stuckTimer = 0;
   if (typeof game.chaser.hitLockTimer === "undefined") game.chaser.hitLockTimer = 0;
   if (typeof game.chaser.introLockTimer === "undefined") game.chaser.introLockTimer = 0;
+  if (typeof game.chaser.wallSlideTimer === "undefined") game.chaser.wallSlideTimer = 0;
+  if (typeof game.chaser.wallSlideSign === "undefined") game.chaser.wallSlideSign = 1;
   if (typeof game.chaser.lastX === "undefined") game.chaser.lastX = game.chaser.x;
   if (typeof game.chaser.lastY === "undefined") game.chaser.lastY = game.chaser.y;
   if (!game.pauseView) game.pauseView = "help";
@@ -6905,6 +6905,8 @@ function restoreFromCheckpoint() {
   game.b1DoorAmbush.active = false;
   game.b1DoorAmbush.timer = 0;
   game.b1DoorAmbush.secondSpawnDone = false;
+  game.chaser.wallSlideTimer = 0;
+  game.chaser.wallSlideSign = game.chaser.detourSign || 1;
 
   if (shouldRollbackBeforeTaskB) {
     game.mapId = "map2";
