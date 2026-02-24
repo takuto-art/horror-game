@@ -1,0 +1,10 @@
+{
+  "name": "深夜ホテル: Corridor Escape",
+  "short_name": "CorridorEscape",
+  "start_url": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#05060b",
+  "theme_color": "#05060b",
+  "lang": "ja"
+}

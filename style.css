@@ -2,16 +2,18 @@
   box-sizing: border-box;
 }
 
+html,
 body {
   margin: 0;
   min-height: 100vh;
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top, #1f1f2e 0%, #0f0f14 60%, #07070a 100%);
+  background: radial-gradient(circle at top, #121629 0%, #08090f 62%, #040407 100%);
   color: #f1f1f1;
   display: flex;
   align-items: flex-start;
   justify-content: center;
   padding: 14px 0;
+  overflow-x: hidden;
 }
 
 .game-shell {
@@ -48,6 +50,37 @@ body {
   z-index: 6;
   pointer-events: none;
   display: none;
+}
+
+.orientation-notice {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  background: rgba(0, 0, 0, 0.78);
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+
+.orientation-card {
+  min-width: 220px;
+  max-width: 78vw;
+  padding: 14px 16px;
+  border: 1px solid rgba(210, 220, 255, 0.5);
+  border-radius: 12px;
+  background: rgba(18, 24, 39, 0.95);
+  text-align: center;
+}
+
+.orientation-card h3 {
+  margin: 0 0 4px 0;
+  font-size: 1.05rem;
+}
+
+.orientation-card p {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #d4dbf2;
 }
 
 .mobile-status {
@@ -300,6 +333,7 @@ body {
   body {
     padding: 0;
     align-items: stretch;
+    min-height: 100dvh;
   }
 
   .game-shell {

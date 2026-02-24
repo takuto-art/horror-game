@@ -11,6 +11,7 @@
 const canvas = document.getElementById("gameCanvas");
 const ctx = canvas.getContext("2d");
 canvas.addEventListener("click", () => {
+  requestFullscreenForMobile();
   canvas.focus();
   activateAudioSystems();
 });
@@ -34,10 +35,13 @@ const endingTitle = document.getElementById("endingTitle");
 const endingText = document.getElementById("endingText");
 const titleScreen = document.getElementById("titleScreen");
 const startGameButton = document.getElementById("startGameButton");
+const controlsHint = document.getElementById("controlsHint");
+const titleControlsHint = document.getElementById("titleControlsHint");
 const mobileControls = document.getElementById("mobileControls");
 const mobileJoystickBase = document.getElementById("mobileJoystickBase");
 const mobileStatusTask = document.getElementById("mobileStatusTask");
 const mobileStatusObjective = document.getElementById("mobileStatusObjective");
+const orientationNotice = document.getElementById("orientationNotice");
 
 const WORLD = {
   width: 960,
@@ -63,7 +67,7 @@ const CHASER_SPAWN_DELAY = 1.5;
 const RESCUE_HOLD_SECONDS = 0.6;
 const LIGHT_MAX_CHARGE = 100;
 const LIGHT_DRAIN_PER_SEC = 1.35;
-const LIGHT_RECOVER_PER_SEC = 1.65;
+const LIGHT_RECOVER_PER_SEC = 2.1;
 const BLOOD_FLASH_DURATION = 0.18;
 const SHAKE_DURATION = 0.25;
 const SHADOW_HINT_DURATION = 0.15;
@@ -211,6 +215,11 @@ const ASSET_PATHS = {
     yutoStand: "assets/img/yuto.png",
     portraitYuto: "assets/img/portrait_yuto.png",
     portraitMemo: "assets/img/portrait_memo.png",
+    frontdeskLedger: "assets/img/frontdesk.png",
+    map2Intro: "assets/img/2Fmap.png",
+    map3Intro: "assets/img/B1map.png",
+    deadFace: "assets/img/dead.png",
+    cStand: "assets/img/C.stand.png",
   },
   bgm: {
     main: "assets/bgm/main.mp3",
@@ -783,6 +792,55 @@ function normalizeKey(rawKey) {
   return rawKey.toLowerCase();
 }
 
+function isMobileDevice() {
+  return window.matchMedia("(hover: none) and (pointer: coarse)").matches;
+}
+
+function isPortraitViewport() {
+  return window.innerHeight > window.innerWidth;
+}
+
+function requestFullscreenForMobile() {
+  if (!isMobileDevice()) return;
+  if (document.fullscreenElement) return;
+  const target = document.documentElement;
+  if (target.requestFullscreen) {
+    target.requestFullscreen().catch(() => {});
+  }
+}
+
+function registerServiceWorker() {
+  if (!("serviceWorker" in navigator)) return;
+  const isLocal = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+  if (location.protocol !== "https:" && !isLocal) return;
+  navigator.serviceWorker.register("./sw.js").catch(() => {});
+}
+
+function updateOrientationNotice() {
+  if (!orientationNotice) return;
+  const shouldShow = isMobileDevice() && isPortraitViewport() && hasStartedGame;
+  orientationNotice.classList.toggle("hidden", !shouldShow);
+}
+
+function refreshControlHints() {
+  const mobile = isMobileDevice();
+  if (titleControlsHint) {
+    titleControlsHint.textContent = mobile
+      ? "移動: 左下スティック　|　調べる: 右下「調べる」ボタン"
+      : "移動: WASD / 矢印　|　調べる: Space";
+  }
+  if (controlsHint) {
+    controlsHint.textContent = mobile
+      ? "移動: 左下スティック | 調べる: 右下「調べる」(長押し可) | ライト: 右下「ライト」 | 一時停止: 右下「ポーズ」 | 会話送り: 調べるボタン/Enter"
+      : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H";
+  }
+}
+
+function vibrateIfSupported(pattern) {
+  if (!("vibrate" in navigator)) return;
+  navigator.vibrate(pattern);
+}
+
 function refreshDirectionInputs() {
   input.move.up = input.held.has("w") || input.held.has("arrowup");
   input.move.down = input.held.has("s") || input.held.has("arrowdown");
@@ -796,6 +854,15 @@ window.addEventListener("keydown", (event) => {
 
   if (["arrowup", "arrowdown", "arrowleft", "arrowright", "space"].includes(key)) {
     event.preventDefault();
+  }
+
+  // タイトル画面中は Enter / Space でもゲーム開始できるようにする。
+  if (!hasStartedGame && (key === "enter" || key === "space")) {
+    input.held.clear();
+    input.justPressed.clear();
+    refreshDirectionInputs();
+    startGameFromTitle();
+    return;
   }
 
   if (!input.held.has(key)) {
@@ -877,6 +944,7 @@ function bindMobileControls() {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
       const key = button.dataset.key;
+      requestFullscreenForMobile();
       setMobileKeyHeld(key, true, event.pointerId, button);
       if (button.setPointerCapture) {
         button.setPointerCapture(event.pointerId);
@@ -902,6 +970,7 @@ function bindMobileJoystick() {
   const onDown = (event) => {
     event.preventDefault();
     activateAudioSystems();
+    requestFullscreenForMobile();
     mobileTouchState.joystickPointerId = event.pointerId;
     if (mobileJoystickBase.setPointerCapture) {
       mobileJoystickBase.setPointerCapture(event.pointerId);
@@ -971,6 +1040,12 @@ function resetMobileJoystick() {
 }
 
 bindMobileJoystick();
+window.addEventListener("resize", updateOrientationNotice);
+window.addEventListener("orientationchange", updateOrientationNotice);
+window.addEventListener("resize", refreshControlHints);
+window.addEventListener("orientationchange", refreshControlHints);
+registerServiceWorker();
+refreshControlHints();
 
 // ------------------------------------------------------------
 // 3) Dialogue system
@@ -1338,6 +1413,16 @@ class MapManager {
         { speaker: "悠斗", text: "帰るべきだろ。……でも、戻ったら“あれ”がいる。" },
         { speaker: "悠斗", text: "……選択肢がない。" },
       ], { autoAdvanceMs: 1700 });
+    }
+
+    // 初回到達時のフロア全景表示（素材が無い場合は何も起きない）。
+    if (toMapId === "map2" && !gameState.flags.map2IntroShown) {
+      gameState.flags.map2IntroShown = true;
+      triggerEventImageOverlay("map2Intro", 1.6, 0.95);
+    }
+    if (toMapId === "map3" && !gameState.flags.map3IntroShown) {
+      gameState.flags.map3IntroShown = true;
+      triggerEventImageOverlay("map3Intro", 1.6, 0.95);
     }
   }
 
@@ -1789,7 +1874,7 @@ function createMap2GuestFloorData() {
       w: 56,
       h: 20,
       color: "#7b5a3b",
-      blocking: false,
+      blocking: true,
       interaction: [{ speaker: "悠斗", text: "リネン室のドアを開けた。" }],
     },
     { id: "room206_bed", label: "", x: 324, y: 344, w: 76, h: 38, color: "#6d6f88", blocking: true, interaction: null },
@@ -1834,8 +1919,6 @@ function createMap3BasementData() {
     rect(495, 140, 165, 20),
     rect(760, 140, 180, 20),
     // メイン廊下の下壁（階段上は開放。ドア開口と位置を一致）
-    rect(20, 400, 50, 20),
-    rect(200, 400, 80, 20),
     rect(320, 400, 350, 20),
     rect(710, 400, 140, 20),
     rect(890, 400, 50, 20),
@@ -1843,9 +1926,9 @@ function createMap3BasementData() {
     rect(320, 20, 20, 120),
     rect(620, 20, 20, 120),
     // 下段の縦仕切り
-    rect(260, 420, 20, 100),
-    rect(560, 420, 20, 100),
-    rect(820, 420, 20, 100),
+    rect(260, 400, 20, 120),
+    rect(560, 400, 20, 120),
+    rect(820, 400, 20, 120),
   ];
 
   const interactables = [
@@ -2155,6 +2238,12 @@ function createInitialGameState() {
       chaserSpawnCueTimer: 0,
       chaserSpawnCueX: 0,
       chaserSpawnCueY: 0,
+      chaserSpawnNoticeTimer: 0,
+      chaserSpawnNoticeText: "",
+      eventImageKey: "",
+      eventImageTimer: 0,
+      eventImageDuration: 0,
+      eventImageAlpha: 1,
       escapeCinematicTimer: 0,
       escapeCinematicActive: false,
       endrollTimer: 0,
@@ -2180,6 +2269,8 @@ function createInitialGameState() {
       room203HideSurvived: false,
       room204205ReappearTriggered: false,
       lastCaughtByLockerLight: false,
+      map2IntroShown: false,
+      map3IntroShown: false,
       b1EntryForeshadowPlayed: false,
       b1ReturnTalkPlayed: false,
       linenDoorOpened: false,
@@ -2326,6 +2417,7 @@ function resetGame() {
   playIntroDialogue();
   saveCheckpoint();
   refreshHUD();
+  updateOrientationNotice();
 }
 
 function startGameFromTitle() {
@@ -2334,6 +2426,7 @@ function startGameFromTitle() {
   if (titleScreen) {
     titleScreen.classList.add("hidden");
   }
+  requestFullscreenForMobile();
   activateAudioSystems();
   resetGame();
 }
@@ -2417,6 +2510,19 @@ function update(dt) {
     stopHeartbeatSEs();
     objectiveText.textContent = `${buildObjectiveChecklistText()}\n\nエンドロール再生中…`;
     updateEndroll(dt);
+    refreshHUD();
+    return;
+  }
+
+  // 写真オーバーレイ表示中はゲーム進行を止め、手動で次へ進める。
+  if (isEventImageOverlayActive()) {
+    stopStepSE();
+    stopHeartbeatSEs();
+    game.interaction.hold.reset();
+    game.interaction.nearest = null;
+    if (wasJustPressed("space") || wasJustPressed("enter") || wasJustPressed("e")) {
+      closeEventImageOverlay();
+    }
     refreshHUD();
     return;
   }
@@ -2663,6 +2769,8 @@ function updateHideState(dt) {
     playScareSE();
     playBiteSE();
     playEatSE();
+    // ロッカーを開けられた瞬間の怖い顔（素材があれば表示）。
+    triggerEventImageOverlay("deadFace", 1.1, 1);
     dialogue.start([
       { speaker: "悠斗", text: "……ライトを点けたままだった。" },
       { speaker: "悠斗", text: "扉が急に開いた――しまった、気づかれた！" },
@@ -3190,6 +3298,7 @@ function awakenB1FeedingChase() {
 }
 
 function startB1DoorAmbushChase() {
+  if (game.b1DoorAmbush && game.b1DoorAmbush.active) return;
   game.flags.forceChaseActive = true;
   game.flags.chaserGone = false;
   game.flags.chaserAwakened = true;
@@ -3199,7 +3308,7 @@ function startB1DoorAmbushChase() {
   game.b1DoorAmbush.secondSpawnDone = false;
 
   // 1体目は右下区画の中に出現（右端寄りにして即接触を避ける）。
-  const firstSpawn = spawnSafePosition(game.world, { x: 930, y: 500 });
+  const firstSpawn = spawnSafePosition(game.world, { x: 868, y: 456 });
   game.chaser.x = firstSpawn.x;
   game.chaser.y = firstSpawn.y;
   game.chaser.mapId = "map3";
@@ -3210,7 +3319,7 @@ function startB1DoorAmbushChase() {
   game.chaser.stuckTimer = 0;
   game.chaser.lastX = game.chaser.x;
   game.chaser.lastY = game.chaser.y;
-  triggerChaserSpawnCue(1.25);
+  triggerChaserSpawnCue(1.25, "右下の部屋");
   game.chaser.introLockTimer = 1.0;
   game.chaser.hitLockTimer = 1.35;
   setEmotion("恐怖");
@@ -3256,7 +3365,7 @@ function updateB1DoorAmbush(dt) {
   if (!ambush.secondSpawnDone && ambush.timer >= 3.8) {
     ambush.secondSpawnDone = true;
     // 2体目は左上から出現。
-    const secondSpawn = spawnSafePosition(game.world, { x: 48, y: 60 });
+    const secondSpawn = spawnSafePosition(game.world, { x: 72, y: 86 });
     game.chaser.x = secondSpawn.x;
     game.chaser.y = secondSpawn.y;
     game.chaser.mapId = "map3";
@@ -3267,7 +3376,7 @@ function updateB1DoorAmbush(dt) {
     game.chaser.stuckTimer = 0;
     game.chaser.lastX = game.chaser.x;
     game.chaser.lastY = game.chaser.y;
-    triggerChaserSpawnCue(1.1);
+    triggerChaserSpawnCue(1.1, "左上の通路");
     game.chaser.introLockTimer = 0.8;
     game.chaser.hitLockTimer = 1.0;
     game.latestMemo = "左側にも影が出た。挟まれる。";
@@ -3334,7 +3443,7 @@ function updateLinenRoomEvent() {
   ], { autoAdvanceMs: 1000 });
 }
 
-function triggerChaserSpawnCue(duration = 0.7) {
+function triggerChaserSpawnCue(duration = 0.7, areaHint = "") {
   // 出現演出後に一瞬消えるのを防ぐため、演出時点で即表示させる。
   if (game.chaser.spawnDelay > 0) {
     game.chaser.spawnDelay = 0;
@@ -3343,7 +3452,31 @@ function triggerChaserSpawnCue(duration = 0.7) {
   game.effects.chaserSpawnCueTimer = duration;
   game.effects.chaserSpawnCueX = game.chaser.x + game.chaser.w / 2;
   game.effects.chaserSpawnCueY = game.chaser.y + game.chaser.h / 2;
+  game.effects.chaserSpawnNoticeTimer = 1.2;
+  game.effects.chaserSpawnNoticeText = `追跡者出現: ${areaHint || getSpawnAreaName(game.effects.chaserSpawnCueX, game.effects.chaserSpawnCueY, game.mapId)}`;
+  vibrateIfSupported([24, 40, 24]);
   playDissonanceSE();
+}
+
+function getSpawnAreaName(x, y, mapId) {
+  // 出現地点をざっくり日本語で示し、初見でも方向感覚を失いにくくする。
+  if (mapId === "map3") {
+    if (x >= 740 && y >= 360) return "右下の部屋";
+    if (x <= 260 && y <= 190) return "左上の通路";
+    if (x >= 620 && y <= 220) return "右上区画";
+    return "地下通路";
+  }
+  if (mapId === "map2") {
+    if (x >= 760 && y >= 320) return "リネン室前";
+    if (x >= 700) return "2F右側廊下";
+    return "2F廊下";
+  }
+  if (mapId === "map1") {
+    if (x >= 640 && y <= 250) return "エレベーターホール";
+    if (y >= 360) return "ロビー";
+    return "1F通路";
+  }
+  return "不明";
 }
 
 function moveChaserWithDetour(moveX, moveY) {
@@ -3400,7 +3533,8 @@ function moveChaserWithDetour(moveX, moveY) {
 
 function tryMoveChaser(nextX, nextY) {
   const hitbox = getChaserHitbox(nextX, nextY);
-  const wallHit = getFirstCollisionWall(hitbox, getBlockingRects());
+  // 追跡者は全ドアを通過できるようにする。
+  const wallHit = getFirstCollisionWall(hitbox, getBlockingRects().filter((r) => !isDoorForChaser(r)));
   if (wallHit) return false;
   if (!game.debug && isBreakerRoomGateLocked() && rectsOverlap(hitbox, getBreakerRoomGateRect())) {
     return false;
@@ -3413,9 +3547,22 @@ function tryMoveChaser(nextX, nextY) {
   return true;
 }
 
+function isDoorForChaser(rectEntity) {
+  if (!rectEntity || typeof rectEntity.id !== "string") return false;
+  if (rectEntity.id.includes("door")) return true;
+  // 2F上段ドアは id に door が含まれないため明示。
+  return (
+    rectEntity.id === "room201" ||
+    rectEntity.id === "room202" ||
+    rectEntity.id === "room204" ||
+    rectEntity.id === "room205"
+  );
+}
+
 function triggerCaughtEnding() {
   if (game.ending) return;
   game.stats.caughtCount += 1;
+  vibrateIfSupported([120, 60, 120, 60, 180]);
   // 捕食系SEを重ねて、Caughtの印象をはっきりさせる。
   playBiteSE();
   playEatSE();
@@ -3822,16 +3969,14 @@ function triggerInteractable(candidate) {
       game.flags.b1FeedingChaseTriggered = true;
       game.flags.b1FeedingNoticed = true;
       obj.interaction = [];
-      dialogue.start([
-        { speaker: "悠斗", text: "……っ！ 嘘だろ……" },
-        { speaker: "悠斗", text: "今の、……人……？ 食ってる……？ 胃が……やばい……吐く。" },
-        { speaker: "悠斗", text: "……気づかれた。お願いだから……見失ってくれ！" },
-      ], {
-        autoAdvanceMs: 900,
-        onComplete: () => {
-          startB1DoorAmbushChase();
-        },
-      });
+      // 右下の扉を開けたら、部屋内が見えるように奥の血痕オブジェクトを通行可にする。
+      const feeding = game.world.interactables.find((i) => i.id === "feeding_scene");
+      if (feeding) {
+        feeding.blocking = false;
+      }
+      // ここで長い会話を挟むと停止したように見えるため、即イベント開始にする。
+      game.latestMemo = "右下の扉を開けた。中で何かが動いた……！";
+      startB1DoorAmbushChase();
       return;
     }
     dialogue.start([{ speaker: "悠斗", text: "扉は開いている。ここから先には近づきたくない。" }], { autoAdvanceMs: 900 });
@@ -3913,6 +4058,7 @@ function triggerInteractable(candidate) {
   }
 
   if (obj.id === "shadow_figure") {
+    triggerEventImageOverlay("cStand", 0.95, 0.92);
     dialogue.start(obj.interaction, {
       onComplete: () => {
         obj.blocking = false;
@@ -3929,6 +4075,7 @@ function triggerInteractable(candidate) {
   if (obj.id === "frontdesk_ledger") {
     if (!game.tasks.taskAFrontDesk) {
       game.tasks.taskAFrontDesk = true;
+      triggerEventImageOverlay("frontdeskLedger", 1.4, 0.96);
       saveCheckpoint();
       setEmotion("違和感");
       game.latestMemo = "台帳: 悠斗 / Room203 / 日付が明日になっている";
@@ -4310,13 +4457,21 @@ function getMapChangeDialogue(obj) {
 function triggerEnding(title, text) {
   game.ending = true;
   game.endingType = title;
+  let displayTitle = title;
+  let displayText = text;
   if (title === "Caught") {
     setEmotion("恐怖");
+    displayTitle = "GAME OVER";
+    // Caught時は本文先頭の "Game Over" を外して、見出しを主表示にする。
+    const trimmed = typeof text === "string"
+      ? text.replace(/^Game Over\s*/i, "").replace(/^\n+/, "")
+      : "";
+    displayText = `Caught\n\n${trimmed}`;
   } else {
     setEmotion("安堵");
   }
-  endingTitle.textContent = title;
-  endingText.textContent = text;
+  endingTitle.textContent = displayTitle;
+  endingText.textContent = displayText;
   endingScreen.classList.remove("hidden");
 }
 
@@ -4380,6 +4535,37 @@ function updateHorrorEffects(dt) {
   game.effects.shakeTimer = Math.max(0, game.effects.shakeTimer - dt);
   game.effects.shadowHintTimer = Math.max(0, game.effects.shadowHintTimer - dt);
   game.effects.chaserSpawnCueTimer = Math.max(0, game.effects.chaserSpawnCueTimer - dt);
+  game.effects.chaserSpawnNoticeTimer = Math.max(0, game.effects.chaserSpawnNoticeTimer - dt);
+  if (game.effects.chaserSpawnNoticeTimer <= 0) {
+    game.effects.chaserSpawnNoticeText = "";
+  }
+  if (game.effects.eventImageTimer > 0) {
+    game.effects.eventImageTimer = Math.max(0, game.effects.eventImageTimer - dt);
+    if (game.effects.eventImageTimer <= 0) {
+      game.effects.eventImageKey = "";
+    }
+  }
+}
+
+function triggerEventImageOverlay(imageKey, durationSec = 1.2, alpha = 0.95) {
+  // 素材が無い場合は安全にスキップ。
+  const img = imageAssets.get(imageKey);
+  if (!img) return;
+  game.effects.eventImageKey = imageKey;
+  game.effects.eventImageDuration = durationSec;
+  // 写真は自動で消さず、プレイヤー入力で進める。
+  game.effects.eventImageTimer = -1;
+  game.effects.eventImageAlpha = Math.max(0, Math.min(1, alpha));
+}
+
+function isEventImageOverlayActive() {
+  return Boolean(game.effects.eventImageKey);
+}
+
+function closeEventImageOverlay() {
+  game.effects.eventImageKey = "";
+  game.effects.eventImageTimer = 0;
+  game.effects.eventImageDuration = 0;
 }
 
 function updateEscapeCinematic(dt) {
@@ -4663,6 +4849,7 @@ function triggerBloodFlashAndShake() {
   const shakeDuration = game.settings.reduceFlash ? SHAKE_DURATION * 0.5 : SHAKE_DURATION;
   game.effects.bloodFlashTimer = flashDuration;
   game.effects.shakeTimer = shakeDuration;
+  vibrateIfSupported(30);
 }
 
 function triggerShadowHint() {
@@ -4716,6 +4903,14 @@ function warpToSafeSpot() {
 }
 
 function buildPauseHelpText() {
+  const mobile = isMobileDevice();
+  const moveHelp = mobile ? "・移動: 画面左下の360°スティック" : "・移動: WASD / 矢印";
+  const interactHelp = mobile ? "・調べる: 右下「調べる」ボタン（長押しで連続）" : "・調べる: Space（長押しで連続）";
+  const lightHelp = mobile ? "・ライト: 右下「ライト」ボタン" : "・ライト: Shift / L";
+  const talkHelp = mobile ? "・会話送り: 右下「調べる」ボタン / Enter" : "・会話送り: Space / Enter（長押しで連続）";
+  const pauseHelp = mobile ? "・ポーズ切替: 右下「ポーズ」ボタン" : "・ポーズ切替: P";
+  const rescueHelp = mobile ? "・詰まった時の救済: 画面外キーボード環境ではR長押し" : "・詰まったら R長押しで安全地点に戻れる";
+
   return [
     "一時停止チュートリアル",
     "1: 操作説明  2: シナリオ整理  3: 実績",
@@ -4723,14 +4918,14 @@ function buildPauseHelpText() {
     "まずここを見ればOK",
     "・迷ったら 2 で『シナリオ整理』を開く",
     "・やることは画面上の Task A/B/C を順に進めるだけ",
-    "・詰まったら R長押しで安全地点に戻れる",
+    rescueHelp,
     "",
     "操作の基本",
-    "・移動: WASD / 矢印",
-    "・調べる: Space（長押しで連続）",
-    "・ライト: Shift / L",
-    "・会話送り: Space / Enter（長押しで連続）",
-    "・ポーズ切替: P",
+    moveHelp,
+    interactHelp,
+    lightHelp,
+    talkHelp,
+    pauseHelp,
     "",
     "ポーズ中の見方",
     "・1 = 操作説明（今ここ）",
@@ -4890,6 +5085,10 @@ function refreshHUD() {
   const doneCount = getDoneTaskCount();
   inventoryText.textContent = `${doneCount} / 3`;
   memoText.textContent = `メモ: ${game.latestMemo}`;
+  if (mobileStatusTask && mobileStatusObjective) {
+    mobileStatusTask.textContent = `タスク ${doneCount} / 3`;
+    mobileStatusObjective.textContent = `次: ${buildMobileNextActionText()}`;
+  }
   if (emotionText) {
     emotionText.textContent = `感情: ${game.emotion}`;
   }
@@ -4929,10 +5128,6 @@ function refreshHUD() {
     objectiveText.textContent = buildPauseHelpText();
   }
 
-  if (mobileStatusTask && mobileStatusObjective) {
-    mobileStatusTask.textContent = `タスク ${doneCount} / 3`;
-    mobileStatusObjective.textContent = `次: ${buildMobileNextActionText()}`;
-  }
 }
 
 function buildMobileNextActionText() {
@@ -4982,6 +5177,7 @@ function render() {
   dialogue.render();
   drawMapFadeOverlay();
   drawBloodFlashOverlay();
+  drawEventImageOverlay();
   drawEscapeCinematicOverlay();
   drawEndrollOverlay();
   drawLightMeter();
@@ -6077,6 +6273,20 @@ function drawChaserSpawnCue() {
   ctx.arc(cx, cy, radius * 0.5, 0, Math.PI * 2);
   ctx.fill();
   ctx.restore();
+
+  if (game.effects.chaserSpawnNoticeTimer > 0) {
+    const nRatio = Math.max(0, Math.min(1, game.effects.chaserSpawnNoticeTimer / 1.2));
+    ctx.save();
+    ctx.fillStyle = `rgba(0, 0, 0, ${0.62 * nRatio})`;
+    ctx.fillRect(WORLD.width / 2 - 170, 18, 340, 34);
+    ctx.strokeStyle = `rgba(210, 62, 62, ${0.8 * nRatio})`;
+    ctx.strokeRect(WORLD.width / 2 - 170, 18, 340, 34);
+    ctx.fillStyle = `rgba(255, 232, 232, ${0.95 * nRatio})`;
+    ctx.textAlign = "center";
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(game.effects.chaserSpawnNoticeText || "追跡者出現", WORLD.width / 2, 41);
+    ctx.restore();
+  }
 }
 
 function drawChaseDangerOverlay() {
@@ -6261,6 +6471,43 @@ function drawBloodFlashOverlay() {
   const alpha = Math.max(0, Math.min(alphaMax, alphaMax * ratio));
   ctx.fillStyle = `rgba(170, 0, 0, ${alpha})`;
   ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+}
+
+function drawEventImageOverlay() {
+  const imageKey = game.effects.eventImageKey;
+  if (!imageKey) return;
+  const image = imageAssets.get(imageKey);
+  if (!image) return;
+
+  const alpha = Math.max(0, Math.min(1, game.effects.eventImageAlpha || 1));
+
+  if (alpha <= 0.001) return;
+
+  ctx.save();
+  // 写真表示中は背景を完全に塗りつぶし、下のマップを見せない。
+  ctx.fillStyle = "rgba(0, 0, 0, 1)";
+  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+
+  const srcW = image.width || WORLD.width;
+  const srcH = image.height || WORLD.height;
+  const scale = Math.max(WORLD.width / srcW, WORLD.height / srcH);
+  const dw = srcW * scale;
+  const dh = srcH * scale;
+  const dx = (WORLD.width - dw) * 0.5;
+  const dy = (WORLD.height - dh) * 0.5;
+  ctx.globalAlpha = alpha;
+  ctx.drawImage(image, dx, dy, dw, dh);
+  ctx.globalAlpha = 1;
+
+  ctx.fillStyle = "rgba(0, 0, 0, 0.58)";
+  ctx.fillRect(WORLD.width / 2 - 190, WORLD.height - 52, 380, 32);
+  ctx.strokeStyle = "rgba(220, 220, 230, 0.68)";
+  ctx.strokeRect(WORLD.width / 2 - 190, WORLD.height - 52, 380, 32);
+  ctx.textAlign = "center";
+  ctx.font = "bold 16px sans-serif";
+  ctx.fillStyle = "rgba(245, 245, 250, 0.96)";
+  ctx.fillText("Space / Enter / E で進む", WORLD.width / 2, WORLD.height - 30);
+  ctx.restore();
 }
 
 /*
@@ -6605,6 +6852,8 @@ function restoreFromCheckpoint() {
   if (typeof game.flags.fragmentPauseHint3Shown === "undefined") game.flags.fragmentPauseHint3Shown = false;
   if (typeof game.flags.fragmentPauseHint6Shown === "undefined") game.flags.fragmentPauseHint6Shown = false;
   if (typeof game.flags.fragmentPauseHint10Shown === "undefined") game.flags.fragmentPauseHint10Shown = false;
+  if (typeof game.flags.map2IntroShown === "undefined") game.flags.map2IntroShown = false;
+  if (typeof game.flags.map3IntroShown === "undefined") game.flags.map3IntroShown = false;
   if (!game.fragments) {
     game.fragments = createEmptyFragmentsState();
   } else {
@@ -6619,6 +6868,8 @@ function restoreFromCheckpoint() {
   if (typeof game.chaser.lastX === "undefined") game.chaser.lastX = game.chaser.x;
   if (typeof game.chaser.lastY === "undefined") game.chaser.lastY = game.chaser.y;
   if (!game.pauseView) game.pauseView = "help";
+  if (typeof game.effects.chaserSpawnNoticeTimer === "undefined") game.effects.chaserSpawnNoticeTimer = 0;
+  if (typeof game.effects.chaserSpawnNoticeText === "undefined") game.effects.chaserSpawnNoticeText = "";
 
   game.ending = false;
   game.endingType = null;
@@ -6629,6 +6880,12 @@ function restoreFromCheckpoint() {
   game.effects.shakeTimer = 0;
   game.effects.shadowHintTimer = 0;
   game.effects.chaserSpawnCueTimer = 0;
+  game.effects.chaserSpawnNoticeTimer = 0;
+  game.effects.chaserSpawnNoticeText = "";
+  game.effects.eventImageKey = "";
+  game.effects.eventImageTimer = 0;
+  game.effects.eventImageDuration = 0;
+  game.effects.eventImageAlpha = 1;
   game.effects.escapeCinematicTimer = 0;
   game.effects.escapeCinematicActive = false;
   game.effects.endrollTimer = 0;

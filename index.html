@@ -3,8 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#05060b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>深夜ホテル: Corridor Escape MVP</title>
   <link rel="stylesheet" href="style.css" />
+  <link rel="manifest" href="manifest.webmanifest" />
 </head>
 <body>
   <main class="game-shell">
@@ -12,6 +16,12 @@
 
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="ゲーム画面"></canvas>
+      <div id="orientationNotice" class="orientation-notice hidden">
+        <div class="orientation-card">
+          <h3>横向きでプレイ</h3>
+          <p>スマホを横向きにすると見やすくなります。</p>
+        </div>
+      </div>
 
       <div id="mobileControls" class="mobile-controls">
         <div id="mobileStatus" class="mobile-status">
@@ -33,7 +43,7 @@
       <div id="titleScreen" class="overlay">
         <h2>深夜ホテル</h2>
         <p>Corridor Escape</p>
-        <p class="title-controls">移動: WASD / 矢印 / 360°スティック　|　調べる: Space / 画面ボタン</p>
+        <p id="titleControlsHint" class="title-controls">移動: WASD / 矢印　|　調べる: Space</p>
         <button id="startGameButton" type="button">ゲームスタート</button>
       </div>
 
@@ -74,7 +84,7 @@
 [ ] Task C: B1で非常電源(ブレーカー)をON
 [ ] 1F非常口から脱出</div>
       <div class="memo" id="memoText">メモ: まだ何も見つかっていない。</div>
-      <div class="controls">移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H</div>
+      <div id="controlsHint" class="controls">移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H</div>
     </section>
   </main>
 
