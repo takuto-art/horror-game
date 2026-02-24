@@ -13,9 +13,24 @@
     <div class="canvas-wrap">
       <canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="ゲーム画面"></canvas>
 
+      <div id="mobileControls" class="mobile-controls">
+        <div class="mobile-dpad">
+          <button class="mobile-btn mobile-dir up" type="button" data-key="arrowup">▲</button>
+          <button class="mobile-btn mobile-dir left" type="button" data-key="arrowleft">◀</button>
+          <button class="mobile-btn mobile-dir right" type="button" data-key="arrowright">▶</button>
+          <button class="mobile-btn mobile-dir down" type="button" data-key="arrowdown">▼</button>
+        </div>
+        <div class="mobile-actions">
+          <button class="mobile-btn mobile-action" type="button" data-key="space">調べる</button>
+          <button class="mobile-btn mobile-action" type="button" data-key="l">ライト</button>
+          <button class="mobile-btn mobile-action" type="button" data-key="p">ポーズ</button>
+        </div>
+      </div>
+
       <div id="titleScreen" class="overlay">
         <h2>深夜ホテル</h2>
         <p>Corridor Escape</p>
+        <p class="title-controls">移動: WASD / 矢印 / 画面ボタン　|　調べる: Space / 画面ボタン</p>
         <button id="startGameButton" type="button">ゲームスタート</button>
       </div>
 
@@ -56,7 +71,7 @@
 [ ] Task C: B1で非常電源(ブレーカー)をON
 [ ] 1F非常口から脱出</div>
       <div class="memo" id="memoText">メモ: まだ何も見つかっていない。</div>
-      <div class="controls">移動: WASD / 矢印 | 調べる: E / Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H</div>
+      <div class="controls">移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H</div>
     </section>
   </main>
 
