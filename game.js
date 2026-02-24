@@ -35,6 +35,9 @@ const endingText = document.getElementById("endingText");
 const titleScreen = document.getElementById("titleScreen");
 const startGameButton = document.getElementById("startGameButton");
 const mobileControls = document.getElementById("mobileControls");
+const mobileJoystickBase = document.getElementById("mobileJoystickBase");
+const mobileStatusTask = document.getElementById("mobileStatusTask");
+const mobileStatusObjective = document.getElementById("mobileStatusObjective");
 
 const WORLD = {
   width: 960,
@@ -768,6 +771,11 @@ const input = {
     left: false,
     right: false,
   },
+  analog: {
+    active: false,
+    x: 0,
+    y: 0,
+  },
 };
 
 function normalizeKey(rawKey) {
@@ -807,8 +815,13 @@ window.addEventListener("keyup", (event) => {
 window.addEventListener("blur", () => {
   input.held.clear();
   input.justPressed.clear();
+  input.analog.active = false;
+  input.analog.x = 0;
+  input.analog.y = 0;
   mobileTouchState.pointerToKey.clear();
   mobileTouchState.activeKeys.clear();
+  mobileTouchState.joystickPointerId = null;
+  resetMobileJoystick();
   if (mobileControls) {
     const activeButtons = mobileControls.querySelectorAll(".is-active");
     for (const btn of activeButtons) {
@@ -830,6 +843,7 @@ function isHeld(...keys) {
 const mobileTouchState = {
   pointerToKey: new Map(),
   activeKeys: new Set(),
+  joystickPointerId: null,
 };
 
 function setMobileKeyHeld(key, pressed, pointerId, element) {
@@ -881,6 +895,82 @@ function bindMobileControls() {
 }
 
 bindMobileControls();
+
+function bindMobileJoystick() {
+  if (!mobileJoystickBase) return;
+
+  const onDown = (event) => {
+    event.preventDefault();
+    activateAudioSystems();
+    mobileTouchState.joystickPointerId = event.pointerId;
+    if (mobileJoystickBase.setPointerCapture) {
+      mobileJoystickBase.setPointerCapture(event.pointerId);
+    }
+    updateMobileJoystickFromEvent(event);
+  };
+
+  const onMove = (event) => {
+    if (mobileTouchState.joystickPointerId !== event.pointerId) return;
+    event.preventDefault();
+    updateMobileJoystickFromEvent(event);
+  };
+
+  const onUp = (event) => {
+    if (mobileTouchState.joystickPointerId !== event.pointerId) return;
+    event.preventDefault();
+    mobileTouchState.joystickPointerId = null;
+    resetMobileJoystick();
+  };
+
+  mobileJoystickBase.addEventListener("pointerdown", onDown);
+  mobileJoystickBase.addEventListener("pointermove", onMove);
+  mobileJoystickBase.addEventListener("pointerup", onUp);
+  mobileJoystickBase.addEventListener("pointercancel", onUp);
+  mobileJoystickBase.addEventListener("lostpointercapture", onUp);
+  mobileJoystickBase.addEventListener("contextmenu", (event) => event.preventDefault());
+}
+
+function updateMobileJoystickFromEvent(event) {
+  if (!mobileJoystickBase) return;
+  const rect = mobileJoystickBase.getBoundingClientRect();
+  const cx = rect.left + rect.width / 2;
+  const cy = rect.top + rect.height / 2;
+  const rawX = event.clientX - cx;
+  const rawY = event.clientY - cy;
+  const maxRadius = rect.width * 0.34;
+  const dist = Math.hypot(rawX, rawY);
+  const scale = dist > maxRadius ? maxRadius / dist : 1;
+  const dx = rawX * scale;
+  const dy = rawY * scale;
+
+  mobileJoystickBase.style.setProperty("--jx", `${dx}px`);
+  mobileJoystickBase.style.setProperty("--jy", `${dy}px`);
+
+  const nx = dx / maxRadius;
+  const ny = dy / maxRadius;
+  const mag = Math.hypot(nx, ny);
+  if (mag < 0.14) {
+    input.analog.active = false;
+    input.analog.x = 0;
+    input.analog.y = 0;
+    return;
+  }
+  input.analog.active = true;
+  input.analog.x = nx;
+  input.analog.y = ny;
+}
+
+function resetMobileJoystick() {
+  if (mobileJoystickBase) {
+    mobileJoystickBase.style.setProperty("--jx", "0px");
+    mobileJoystickBase.style.setProperty("--jy", "0px");
+  }
+  input.analog.active = false;
+  input.analog.x = 0;
+  input.analog.y = 0;
+}
+
+bindMobileJoystick();
 
 // ------------------------------------------------------------
 // 3) Dialogue system
@@ -2783,6 +2873,10 @@ function movePlayer(dt) {
   if (input.move.down) dy += 1;
   if (input.move.left) dx -= 1;
   if (input.move.right) dx += 1;
+  if (input.analog.active) {
+    dx += input.analog.x;
+    dy += input.analog.y;
+  }
   const isMoving = dx !== 0 || dy !== 0;
 
   // Remember facing for sprite orientation.
@@ -4834,6 +4928,19 @@ function refreshHUD() {
     }
     objectiveText.textContent = buildPauseHelpText();
   }
+
+  if (mobileStatusTask && mobileStatusObjective) {
+    mobileStatusTask.textContent = `タスク ${doneCount} / 3`;
+    mobileStatusObjective.textContent = `次: ${buildMobileNextActionText()}`;
+  }
+}
+
+function buildMobileNextActionText() {
+  if (!game.tasks.taskAFrontDesk) return "1Fフロントを調べる";
+  if (!game.tasks.taskBRoom203) return "2Fの203へ向かう";
+  if (!game.tasks.taskCBreaker) return "B1で分電盤をON";
+  if (!game.tasks.escaped) return "1F非常口へ向かう";
+  return "脱出完了";
 }
 
 // ------------------------------------------------------------

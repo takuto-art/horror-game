@@ -14,12 +14,15 @@
       <canvas id="gameCanvas" width="960" height="540" tabindex="0" aria-label="ゲーム画面"></canvas>
 
       <div id="mobileControls" class="mobile-controls">
-        <div class="mobile-dpad">
-          <button class="mobile-btn mobile-dir up" type="button" data-key="arrowup">▲</button>
-          <button class="mobile-btn mobile-dir left" type="button" data-key="arrowleft">◀</button>
-          <button class="mobile-btn mobile-dir right" type="button" data-key="arrowright">▶</button>
-          <button class="mobile-btn mobile-dir down" type="button" data-key="arrowdown">▼</button>
+        <div id="mobileStatus" class="mobile-status">
+          <div id="mobileStatusTask">タスク 0/3</div>
+          <div id="mobileStatusObjective">次: 1Fフロントを調べる</div>
         </div>
+
+        <div id="mobileJoystickBase" class="mobile-joystick-base">
+          <div id="mobileJoystickStick" class="mobile-joystick-stick"></div>
+        </div>
+
         <div class="mobile-actions">
           <button class="mobile-btn mobile-action" type="button" data-key="space">調べる</button>
           <button class="mobile-btn mobile-action" type="button" data-key="l">ライト</button>
@@ -30,7 +33,7 @@
       <div id="titleScreen" class="overlay">
         <h2>深夜ホテル</h2>
         <p>Corridor Escape</p>
-        <p class="title-controls">移動: WASD / 矢印 / 画面ボタン　|　調べる: Space / 画面ボタン</p>
+        <p class="title-controls">移動: WASD / 矢印 / 360°スティック　|　調べる: Space / 画面ボタン</p>
         <button id="startGameButton" type="button">ゲームスタート</button>
       </div>
 

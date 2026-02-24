@@ -50,18 +50,61 @@ body {
   display: none;
 }
 
-.mobile-dpad {
+.mobile-status {
   position: absolute;
-  left: 12px;
-  bottom: 12px;
-  width: 160px;
-  height: 160px;
+  left: 10px;
+  top: 10px;
+  max-width: min(66vw, 360px);
+  padding: 6px 8px;
+  border: 1px solid rgba(210, 220, 255, 0.45);
+  border-radius: 10px;
+  background: rgba(8, 12, 22, 0.62);
+  color: #eff3ff;
+  font-size: 0.74rem;
+  line-height: 1.25;
+  pointer-events: none;
+}
+
+#mobileStatusTask {
+  font-weight: 700;
+}
+
+#mobileStatusObjective {
+  margin-top: 2px;
+  color: #d2dcff;
+}
+
+.mobile-joystick-base {
+  position: absolute;
+  left: 14px;
+  bottom: 14px;
+  width: 132px;
+  height: 132px;
+  border-radius: 50%;
+  border: 1px solid rgba(210, 220, 255, 0.5);
+  background: rgba(15, 22, 36, 0.45);
+  pointer-events: auto;
+  touch-action: none;
+  --jx: 0px;
+  --jy: 0px;
+}
+
+.mobile-joystick-stick {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 1px solid rgba(230, 238, 255, 0.65);
+  background: rgba(82, 106, 168, 0.82);
+  transform: translate(calc(-50% + var(--jx)), calc(-50% + var(--jy)));
 }
 
 .mobile-actions {
   position: absolute;
   right: 12px;
-  bottom: 12px;
+  bottom: 14px;
   display: grid;
   gap: 8px;
 }
@@ -72,7 +115,7 @@ body {
   -webkit-user-select: none;
   touch-action: none;
   border: 1px solid rgba(210, 220, 255, 0.6);
-  background: rgba(16, 22, 35, 0.78);
+  background: rgba(16, 22, 35, 0.62);
   color: #eef2ff;
   font-weight: 700;
 }
@@ -96,10 +139,10 @@ body {
 .mobile-dir.down { left: 53px; top: 106px; }
 
 .mobile-action {
-  width: 104px;
-  height: 46px;
+  width: 86px;
+  height: 40px;
   border-radius: 12px;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
 }
 
 .overlay {
@@ -254,6 +297,30 @@ body {
 }
 
 @media (hover: none) and (pointer: coarse) {
+  body {
+    padding: 0;
+    align-items: stretch;
+  }
+
+  .game-shell {
+    width: 100vw;
+    gap: 0;
+  }
+
+  .game-title {
+    display: none;
+  }
+
+  .canvas-wrap {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .hud {
+    display: none;
+  }
+
   .mobile-controls {
     display: block;
   }
