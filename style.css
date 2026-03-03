@@ -181,7 +181,7 @@ body {
 .overlay {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.78);
+  background-color: rgba(0, 0, 0, 0.78);
   display: grid;
   place-content: center;
   text-align: center;
@@ -189,9 +189,23 @@ body {
   padding: 24px;
 }
 
+#titleScreen {
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.82)), url("assets/img/title.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+#endingScreen {
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 .overlay h2,
 .overlay p {
   margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.7);
 }
 
 .overlay-help {

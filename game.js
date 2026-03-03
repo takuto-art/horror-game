@@ -87,8 +87,8 @@ const STORY_FRAGMENT_BY_OBJECT = {
     title: "日記の切れ端",
     lines: [
       "『23:10 チェックイン。終電を逃した。』",
-      "『約束の相手は203にいるはずだった。』",
-      "『顔を見るまでは帰れない。話さなきゃいけない。』",
+      "何度も電話した。出なかった。最後に残した声が、俺には重すぎた。",
+      "だから来た。直接、会いに来た。",
     ],
   },
   room202_desk: {
@@ -104,18 +104,18 @@ const STORY_FRAGMENT_BY_OBJECT = {
     key: "photo",
     title: "写真",
     lines: [
-      "ホテル前で笑う悠斗と、もう一人の男の写真。",
-      "男の顔だけが強く擦り潰されている。",
-      "裏面に『203で会う。逃げるな』と走り書き。",
+      "笑っている。俺も、あいつも。",
+      "いつの写真だろう。こんなに笑えていた時期が、あった。",
+      "裏面に俺の字で：『逃げるな』とだけ書いてある。",
     ],
   },
   room205_wardrobe: {
     key: "memo",
     title: "メモ片",
     lines: [
-      "『終電を逃した夜、203で待つ。』",
-      "『お前は忘れたふりをする。だから証拠を残す。』",
-      "『もし俺が消えても、記録を拾え。』",
+      "俺は逃げ続けた。仕事を理由に、時間を理由に、疲れを理由に。",
+      "本当は怖かっただけだ。向き合うのが。",
+      "だから証拠を残す。次の俺が逃げないように。",
     ],
   },
   front_flower_wood: {
@@ -160,8 +160,8 @@ const STORY_FRAGMENT_BY_OBJECT = {
     title: "自販機売上票",
     lines: [
       "売上票の最新行に『水 1本 / 23:48 / 203』とある。",
-      "その下に同じ行が同じ時刻で3回連続で印字されている。",
-      "『同じ夜を繰り返している』という走り書きが端に残っている。",
+      "同じ言い訳で、同じ夜を繰り返してきた。",
+      "『今じゃない』『もう少し落ち着いたら』——それを何年続けた。",
     ],
   },
   service_room_a: {
@@ -220,6 +220,15 @@ const ASSET_PATHS = {
     map3Intro: "assets/img/B1map.png",
     deadFace: "assets/img/dead.png",
     cStand: "assets/img/C.stand.png",
+    titleScene: "assets/img/title.png",
+    linenRoomScene: "assets/img/linen_room.png",
+    caughtScene: "assets/img/caught.png",
+    endingSky: "assets/img/ending.png",
+    feedingScene: "assets/img/feeding.png",
+    mirrorScene: "assets/img/mirror.png",
+    escapeScene: "assets/img/escape.png",
+    breakerScene: "assets/img/breaker.png",
+    cardkeyScene: "assets/img/cardkey.png",
   },
   bgm: {
     main: "assets/bgm/main.mp3",
@@ -1655,7 +1664,7 @@ function createMap1LobbyData() {
       h: 34,
       color: "#2a2d3b",
       blocking: true,
-      interaction: [{ speaker: "悠斗", text: "目は合っているのに、まったく反応しない。" }],
+      interaction: [{ speaker: "悠斗", text: "……俺が何かを言うのを、待っているみたいだ。" }],
     },
     {
       id: "lobby_guest",
@@ -1666,7 +1675,7 @@ function createMap1LobbyData() {
       h: 30,
       color: "#2a2d3b",
       blocking: true,
-      interaction: [{ speaker: "悠斗", text: "……反応がない。微動だにしない。" }],
+      interaction: [{ speaker: "悠斗", text: "……この人も、誰かを待ち続けているのかもしれない。" }],
     },
     {
       id: "vending",
@@ -2388,6 +2397,10 @@ function playIntroDialogue() {
     {
       speaker: "悠斗",
       text: "とりあえず部屋。寝て、起きて、明日をやる。それだけ。",
+    },
+    {
+      speaker: "悠斗",
+      text: "……連絡、また後でいいか。今夜は無理だ。",
     },
     {
       speaker: "悠斗",
@@ -3567,10 +3580,10 @@ function triggerCaughtEnding() {
   playScareSE();
   setEmotion("恐怖");
   const caughtLines = [
-    "Game Over\n\n……やだ……死ぬの、やだ……\n……母さん……親父……ごめん……\n俺、まだ……何もしてない。まだ……生きたい……\n\n「大丈夫。――次は、うまくやる」",
-    "Game Over\n\n痛い。痛い。やめろ……！\n息ができない。声が出ない。\n見えてるのに、体が動かない。\n\n「また203に戻ればいい」",
-    "Game Over\n\nここで終わるのか……？\n帰るって、言ったのに。\nスマホの通知、まだ返してない……。\n\n「未完了のままは、気持ち悪いだろ？」",
-    "Game Over\n\n暗い。近い。冷たい。\n誰か助けてくれ……！\nまだ外の空気を吸ってない。\n\n「次は、もっと上手く隠れろ」",
+    "Game Over\n\n……やだ……死ぬの、やだ……\n……母さん……親父……ごめん……\n俺、まだ……何もしてない。まだ……生きたい……\n\n「大丈夫。……また今度にすればいい。いつもそう言ってきた。」",
+    "Game Over\n\n痛い。痛い。やめろ……！\n息ができない。声が出ない。\n見えてるのに、体が動かない。\n\n「連絡は明日でいい。明日も、その次も、そう言い続けてきた。」",
+    "Game Over\n\nここで終わるのか……？\n帰るって、言ったのに。\nスマホの通知、まだ返してない……。\n\n「間に合わなくても、仕方なかった。そうやって、何度も終わらせてきた。」",
+    "Game Over\n\n暗い。近い。冷たい。\n誰か助けてくれ……！\nまだ外の空気を吸ってない。\n\n「次こそちゃんとする。……その\"次\"は、来るのか？」",
   ];
   const line = caughtLines[Math.floor(Math.random() * caughtLines.length)];
   triggerEnding("Caught", line);
@@ -3931,6 +3944,7 @@ function triggerInteractable(candidate) {
   }
 
   if (obj.id === "public_restroom_m" || obj.id === "public_restroom_f") {
+    triggerEventImageOverlay("mirrorScene", 1.25, 0.98);
     playShowerSE();
     playWaterDropSE();
   }
@@ -3955,6 +3969,7 @@ function triggerInteractable(candidate) {
   }
 
   if (obj.id === "feeding_scene") {
+    triggerEventImageOverlay("feedingScene", 1.15, 0.98);
     playEatSE();
     playBiteSE();
   }
@@ -4043,6 +4058,7 @@ function triggerInteractable(candidate) {
     obj.blocking = false;
     if (!game.flags.linenDoorOpened) {
       game.flags.linenDoorOpened = true;
+      triggerEventImageOverlay("linenRoomScene", 1.35, 0.98);
       dialogue.start([
         { speaker: "悠斗", text: "リネン室のドアを開けた。" },
         { speaker: "悠斗", text: "……空気が重い。ここ、妙に静かすぎる。" },
@@ -4077,10 +4093,11 @@ function triggerInteractable(candidate) {
       setEmotion("違和感");
       game.latestMemo = "台帳: 悠斗 / Room203 / 日付が明日になっている";
       dialogue.start([
-        { speaker: "悠斗", text: "……宿泊台帳。こんなの手書きで残してるの、今どき珍しいな。" },
-        { speaker: "悠斗", text: "203……俺の部屋番号……。日付……明日？ ……冗談だろ。" },
-        { speaker: "悠斗", text: "俺、今日ここに入ったよな。今の俺の存在が……“明日”扱い？ 意味わからん。" },
-        { speaker: "悠斗", text: "……誰かいる？ 返事しろよ。さっきまで普通のホテルだっただろ。" },
+        { speaker: "悠斗", text: "……宿泊台帳。俺の名前がある。" },
+        { speaker: "悠斗", text: "チェックイン日: 今日。チェックアウト日: 空欄。" },
+        { speaker: "悠斗", text: "……部屋番号、203。" },
+        { speaker: "悠斗", text: "……あいつも、203って言ってたな。" },
+        { speaker: "悠斗", text: "連絡、返してなかった。ずっと。" },
       ]);
     } else {
       dialogue.start([{ speaker: "悠斗", text: "台帳には確かに203と書かれている。" }]);
@@ -4122,11 +4139,15 @@ function triggerInteractable(candidate) {
       saveCheckpoint();
       setEmotion("確信");
       game.inventory.push("Card Key 203");
+      triggerEventImageOverlay("cardkeyScene", 1.15, 0.98);
       game.latestMemo = "Room203メモ: 非常口の解錠には電源が必要";
       playPickupSE();
       dialogue.start([
-        { speaker: "悠斗", text: "俺の荷物……なのに、俺の部屋じゃないみたいだ。匂いが違う。空気が重い。" },
-        { speaker: "悠斗", text: "あった……カードキー……。よし、これで――" },
+        { speaker: "悠斗", text: "……あいつの荷物がある。" },
+        { speaker: "悠斗", text: "来てたのか。本当に、ここで待ってたのか。" },
+        { speaker: "悠斗", text: "俺は……ずっと連絡を無視してた。" },
+        { speaker: "悠斗", text: "カードキー……。これ、あいつが残したのか。俺のために？" },
+        { speaker: "悠斗", text: "……なんで。俺がこんなに最低なのに。" },
       ], {
         onComplete: () => {
           if (!game.flags.taskBFlashPlayed) {
@@ -4139,7 +4160,7 @@ function triggerInteractable(candidate) {
           }
           dialogue.start([
             { speaker: "悠斗", text: "……っ、何だ今の。心臓、バグるだろ……。" },
-            { speaker: "メモ", text: "『気づいたなら、もう遅い』" },
+            { speaker: "メモ", text: "『まだ間に合う、と思っていた。だから残した。』" },
             { speaker: "悠斗", text: "ふざけんな。誰だよ。出てこいよ。" },
             { speaker: "悠斗", text: "……足音、増えた？ いや、俺しかいない。……いないはずだろ。" },
           ], {
@@ -4199,12 +4220,13 @@ function triggerInteractable(candidate) {
         game.flags.taskCShadowPlayed = true;
         ambientAudio.setHighTensionFootsteps(true);
       }
+      triggerEventImageOverlay("breakerScene", 1.2, 0.98);
       game.latestMemo = "非常電源をON。1F非常口のロックが解除された。";
       dialogue.start([
-        { speaker: "悠斗", text: "……電源。これを上げれば、非常口が開く。……開いてくれ。" },
-        { speaker: "悠斗", text: "頼む。意味なんかいらない。開けばいい。" },
-        { speaker: "悠斗", text: "……音が戻った。いや……戻ったんじゃない。“起動した”んだ。" },
-        { speaker: "悠斗", text: "よし、非常口は開くはずだ。いったん1Fへ戻ろう。" },
+        { speaker: "悠斗", text: "……電源を入れたら、出られる。" },
+        { speaker: "悠斗", text: "出たら、ちゃんと連絡する。謝る。顔を見て、話す。" },
+        { speaker: "悠斗", text: "今度こそ、逃げない。" },
+        { speaker: "悠斗", text: "……音が戻った。非常口は開くはずだ。1Fへ戻ろう。" },
       ]);
     } else {
       dialogue.start([{ speaker: "悠斗", text: "非常電源はすでに入っている。" }]);
@@ -4459,6 +4481,7 @@ function triggerEnding(title, text) {
   if (title === "Caught") {
     setEmotion("恐怖");
     displayTitle = "GAME OVER";
+    setEndingScreenBackground("caughtScene");
     // Caught時は本文先頭の "Game Over" を外して、見出しを主表示にする。
     const trimmed = typeof text === "string"
       ? text.replace(/^Game Over\s*/i, "").replace(/^\n+/, "")
@@ -4466,6 +4489,7 @@ function triggerEnding(title, text) {
     displayText = `Caught\n\n${trimmed}`;
   } else {
     setEmotion("安堵");
+    setEndingScreenBackground("endingSky");
   }
   endingTitle.textContent = displayTitle;
   endingText.textContent = displayText;
@@ -4565,6 +4589,16 @@ function closeEventImageOverlay() {
   game.effects.eventImageDuration = 0;
 }
 
+function setEndingScreenBackground(imageKey) {
+  if (!endingScreen) return;
+  const src = ASSET_PATHS.img[imageKey];
+  if (!src) {
+    endingScreen.style.backgroundImage = "none";
+    return;
+  }
+  endingScreen.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.54), rgba(0, 0, 0, 0.8)), url("${src}")`;
+}
+
 function updateEscapeCinematic(dt) {
   game.effects.escapeCinematicTimer += dt;
   if (game.effects.escapeCinematicTimer >= ESCAPE_CINEMATIC_DURATION) {
@@ -4587,7 +4621,7 @@ function updateEndroll(dt) {
   game.effects.endrollTimer += dt;
   if (game.effects.endrollTimer >= ENDROLL_DURATION) {
     game.effects.endrollActive = false;
-    triggerEnding("Escaped", "……外。冷たい夜風が、やっと肺に入ってきた。\n\n怖かった。何度も諦めそうになった。\nそれでも、ここまで走ってきた。\n\n明日が来る。\n今度こそ、ちゃんと生きて帰る。");
+    triggerEnding("Escaped", "……外。冷たい夜風が、やっと肺に入ってきた。\n\n怖かった。何度も諦めそうになった。\nそれでも、ここまで走ってきた。\n\n明日が来る。\n今度こそ、ちゃんと生きて帰る。\n\n……スマホ、開いてみるか。");
   }
 }
 
@@ -4664,8 +4698,21 @@ function buildEndrollLines(achievementLines) {
     "主人公が脱出するとコピーが未完成になる。",
     "未完成のまま外に出せない。だから執拗に追う。",
     "",
-    "あなたが外へ出たとしても、",
-    "“あなたがあなたである証拠”は、どこにある？",
+    "このホテルで何かを追ってくるものがいた。",
+    "それが何なのかは、誰にもわからない。",
+    "",
+    "ただ——",
+    "",
+    "逃げ続けていた人間が外に出られた夜だった。",
+    "",
+    "「大切な人に連絡した回数」",
+    "「会いに行けた回数」",
+    "「間に合った回数」",
+    "",
+    "それだけが、あなたがあなたである証拠だ。",
+    "",
+    "外に出たら、連絡してみてほしい。",
+    "今夜なら、まだ間に合うかもしれない。",
     "",
     "Thank you for playing",
     "おつかれさま。ここまで辿り着いてくれてありがとう。",
@@ -4692,12 +4739,12 @@ function buildFragmentRevealLines() {
   if (hasAll) {
     lines.push("断片の意味");
     lines.push("悠斗は“ただ終電を逃した”だけじゃなかった。");
-    lines.push("203で“誰か”と会う約束があった。");
+    lines.push("203で“誰か”と会う約束があった。ずっと先延ばしにしてきた、大切な約束が。");
+    lines.push("日記・写真・メモ片は、悠斗が自分自身に宛てて残した証拠だった。");
+    lines.push("「次の俺が逃げないように」——その言葉が、今夜ここにいる理由だ。");
     lines.push("ロビーと地下で見つかった記録は、203が『人を上書きする場』だと示している。");
-    lines.push("レシートや保守ログの時刻は、台帳の日付と噛み合わない。");
-    lines.push("つまり『記録』そのものがずらされている。");
-    lines.push("複数の断片は、悠斗自身が“忘れる前提”で証拠を残したことを示す。");
-    lines.push("推理: 悠斗はここで真相を突き止めるため、最初から203を目指していた。");
+    lines.push("コピーが完成する前に脱出できた。でも向き合うべき相手は、まだ外にいる。");
+    lines.push("推理: 悠斗は逃げるためではなく、向き合うためにここへ来た。");
   } else {
     lines.push("断片の意味（未解明）");
     lines.push("まだ足りない。");
@@ -4805,19 +4852,19 @@ function updateB1FeedingEvent() {
 function triggerWhisperEvent() {
   if (isChaseActiveNow()) return;
   const map1Lines = [
-    [{ speaker: "悠斗", text: "…静かすぎる。ホテルってこんなに静かだったか？" }],
-    [{ speaker: "悠斗", text: "さっき、廊下の奥で何かが動いた気がした。" }, { speaker: "悠斗", text: "…獣か。そうだ。野良猫でも入り込んだんだろう。" }],
-    [{ speaker: "悠斗", text: "俺、ここに何泊してるんだっけ。" }, { speaker: "悠斗", text: "……思い出せない。" }],
+    [{ speaker: "悠斗", text: "……なんで俺、ここにいるんだろう。本当に終電を逃しただけか？" }],
+    [{ speaker: "悠斗", text: "あいつに連絡しなかった。できなかったんじゃなくて、しなかった。" }],
+    [{ speaker: "悠斗", text: "俺、ずっとこうだな。大事なことを後回しにして、気づいたら手遅れになる。" }],
   ];
   const map2Lines = [
-    [{ speaker: "悠斗", text: "この廊下、ずっと同じ長さに感じる。" }, { speaker: "悠斗", text: "歩いても歩いても、端が見えない。" }],
-    [{ speaker: "悠斗", text: "…誰かの足音が聞こえる。俺の後ろから。" }, { speaker: "悠斗", text: "振り返るな。振り返ったら…。" }, { speaker: "悠斗", text: "何もいない。当たり前だ。" }],
-    [{ speaker: "悠斗", text: "203のドアに、もう一度触れた。" }, { speaker: "悠斗", text: "あの部屋には、俺の何かが残っている気がする。" }],
+    [{ speaker: "悠斗", text: "203のドアに触れた。……向こうに何があるか、もう知ってるような気がする。" }],
+    [{ speaker: "悠斗", text: "あいつ、今どうしてるんだろう。元気でいてくれれば、それでいい。" }, { speaker: "悠斗", text: "……本当に、それでいいのか？" }],
+    [{ speaker: "悠斗", text: "逃げてきたのに、逃げた先にも追ってくるものがある。" }],
   ];
   const map3Lines = [
-    [{ speaker: "悠斗", text: "機械の音だけが聞こえる。それが、なぜか安心する。" }, { speaker: "悠斗", text: "…いや、違う。これは呼吸だ。" }],
+    [{ speaker: "悠斗", text: "電源を入れたら出られる。出たら、ちゃんと連絡する。" }, { speaker: "悠斗", text: "……今度こそ。今度こそ本当に。" }],
     [{ speaker: "悠斗", text: "出口まで、何メートルあるんだろう。" }, { speaker: "悠斗", text: "感覚が、おかしくなってきた。" }],
-    [{ speaker: "悠斗", text: "電源を入れたら。出られる。絶対に。" }, { speaker: "悠斗", text: "……本当に、出られるのか？" }],
+    [{ speaker: "悠斗", text: "逃げてきた。ずっと逃げてきた。" }, { speaker: "悠斗", text: "でも今夜だけは、逃げ切っていい。" }],
   ];
 
   let pool;
@@ -5216,6 +5263,18 @@ function drawHallucinationEffects() {
 
 function drawEscapeCinematicOverlay() {
   if (!game.effects.escapeCinematicActive) return;
+  const escapeImage = imageAssets.get("escapeScene");
+  if (escapeImage) {
+    const srcW = escapeImage.width || WORLD.width;
+    const srcH = escapeImage.height || WORLD.height;
+    const scale = Math.max(WORLD.width / srcW, WORLD.height / srcH);
+    const dw = srcW * scale;
+    const dh = srcH * scale;
+    const dx = (WORLD.width - dw) * 0.5;
+    const dy = (WORLD.height - dh) * 0.5;
+    ctx.drawImage(escapeImage, dx, dy, dw, dh);
+  }
+
   const t = game.effects.escapeCinematicTimer;
   const p = Math.max(0, Math.min(1, t / ESCAPE_CINEMATIC_DURATION));
 
@@ -5243,8 +5302,18 @@ function drawEndrollOverlay() {
   const t = game.effects.endrollTimer;
   const p = Math.max(0, Math.min(1, t / ENDROLL_DURATION));
 
-  // 背景のマップが薄く見えるよう、黒を少し薄める。
-  ctx.fillStyle = "rgba(0, 0, 0, 0.56)";
+  const endingImage = imageAssets.get("endingSky");
+  if (endingImage) {
+    const srcW = endingImage.width || WORLD.width;
+    const srcH = endingImage.height || WORLD.height;
+    const scale = Math.max(WORLD.width / srcW, WORLD.height / srcH);
+    const dw = srcW * scale;
+    const dh = srcH * scale;
+    const dx = (WORLD.width - dw) * 0.5;
+    const dy = (WORLD.height - dh) * 0.5;
+    ctx.drawImage(endingImage, dx, dy, dw, dh);
+  }
+  ctx.fillStyle = "rgba(0, 0, 0, 0.46)";
   ctx.fillRect(0, 0, WORLD.width, WORLD.height);
   const vignette = ctx.createRadialGradient(
     WORLD.width / 2,
@@ -5604,7 +5673,7 @@ function drawOminousDetails() {
     ctx.fillStyle = "rgba(130, 30, 42, 0.55)";
     ctx.font = "bold 16px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("DON'T LOOK", 72, 208);
+    ctx.fillText("まだ間に合う", 72, 208);
   } else if (game.mapId === "map2") {
     drawBloodStain(205, 240, 24, 12, -0.1);
     drawBloodStain(545, 216, 32, 15, 0.2);
@@ -5624,7 +5693,7 @@ function drawOminousDetails() {
     ctx.fillStyle = "rgba(255, 80, 70, 0.35)";
     ctx.font = "bold 14px sans-serif";
     ctx.textAlign = "left";
-    ctx.fillText("RUN", 612, 205);
+    ctx.fillText("逃げるな", 612, 205);
   }
 }
 
