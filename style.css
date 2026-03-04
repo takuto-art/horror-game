@@ -298,6 +298,99 @@ body {
   color: #d3d7ea;
 }
 
+.pause-panel {
+  position: absolute;
+  inset: 0;
+  z-index: 7;
+  display: grid;
+  place-items: center;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.82);
+}
+
+.pause-panel-card {
+  width: min(560px, 100%);
+  max-height: 88%;
+  border: 1px solid rgba(180, 190, 220, 0.3);
+  border-radius: 12px;
+  background: rgba(12, 14, 24, 0.96);
+  box-shadow: 0 18px 46px rgba(0, 0, 0, 0.52);
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+}
+
+.pause-panel-header {
+  padding: 12px 14px 10px 14px;
+  border-bottom: 1px solid rgba(150, 162, 194, 0.22);
+}
+
+.pause-panel-title {
+  display: block;
+  color: #f3f5ff;
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  margin-bottom: 10px;
+}
+
+.pause-panel-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.pause-tab-btn {
+  min-height: 44px;
+  padding: 10px 8px;
+  border-radius: 8px;
+  border: 1px solid rgba(162, 173, 203, 0.4);
+  background: rgba(26, 32, 50, 0.86);
+  color: #e8ebfa;
+  font-weight: 700;
+  font-size: 0.84rem;
+  cursor: pointer;
+}
+
+.pause-tab-btn:hover {
+  background: rgba(38, 48, 76, 0.9);
+}
+
+.pause-tab-btn.is-active {
+  background: rgba(72, 86, 126, 0.92);
+  border-color: rgba(200, 208, 234, 0.72);
+}
+
+.pause-panel-content {
+  padding: 16px;
+  overflow-y: auto;
+  white-space: pre-line;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  color: #dde2f5;
+}
+
+.pause-panel-footer {
+  display: flex;
+  justify-content: center;
+  padding: 12px;
+  border-top: 1px solid rgba(150, 162, 194, 0.2);
+}
+
+.pause-resume-btn {
+  min-width: 160px;
+  padding: 10px 18px;
+  border: 1px solid #8f98c0;
+  border-radius: 6px;
+  background: #1f2742;
+  color: #f0f3ff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.pause-resume-btn:hover {
+  background: #2b3760;
+}
+
 .hidden {
   display: none;
 }
@@ -371,5 +464,18 @@ body {
 
   .mobile-controls {
     display: block;
+  }
+
+  .pause-panel {
+    padding: 8px;
+  }
+
+  .pause-panel-card {
+    width: min(94vw, 620px);
+    max-height: 90%;
+  }
+
+  .pause-tab-btn {
+    font-size: 0.9rem;
   }
 }

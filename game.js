@@ -21,6 +21,10 @@ const objectiveText = document.getElementById("objectiveText");
 const memoText = document.getElementById("memoText");
 const emotionText = document.getElementById("emotionText");
 const pauseAudioPanel = document.getElementById("pauseAudioPanel");
+const pausePanel = document.getElementById("pausePanel");
+const pausePanelContent = document.getElementById("pausePanelContent");
+const pauseResumeBtn = document.getElementById("pauseResumeBtn");
+const pauseTabBtns = document.querySelectorAll(".pause-tab-btn");
 const bgmVolumeSlider = document.getElementById("bgmVolume");
 const bgmVolumeValue = document.getElementById("bgmVolumeValue");
 const ambientVolumeSlider = document.getElementById("ambientVolume");
@@ -699,6 +703,28 @@ if (muteAudioButton) {
   });
 }
 setAudioMuted(false);
+
+if (pauseTabBtns && pauseTabBtns.length > 0) {
+  pauseTabBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      if (!game || !game.paused || game.ending || dialogue.active) return;
+      game.pauseView = btn.dataset.view || "help";
+      updatePausePanel();
+    });
+  });
+}
+
+if (pauseResumeBtn) {
+  pauseResumeBtn.addEventListener("click", () => {
+    if (!game || !game.paused) return;
+    game.paused = false;
+    if (pausePanel) {
+      pausePanel.classList.add("hidden");
+      pausePanel.setAttribute("aria-hidden", "true");
+    }
+    canvas.focus();
+  });
+}
 
 function playPickupSE() {
   audioManager.playSE("pickup");
@@ -2570,14 +2596,27 @@ function update(dt) {
 
   if (wasJustPressed("p")) {
     game.paused = !game.paused;
+    if (!game.paused && pausePanel) {
+      pausePanel.classList.add("hidden");
+      pausePanel.setAttribute("aria-hidden", "true");
+    }
   }
 
   if (game.paused) {
     stopStepSE();
     stopHeartbeatSEs();
-    if (wasJustPressed("1")) game.pauseView = "help";
-    if (wasJustPressed("2")) game.pauseView = "fragments";
-    if (wasJustPressed("3")) game.pauseView = "achievements";
+    if (wasJustPressed("1")) {
+      game.pauseView = "help";
+      updatePausePanel();
+    }
+    if (wasJustPressed("2")) {
+      game.pauseView = "fragments";
+      updatePausePanel();
+    }
+    if (wasJustPressed("3")) {
+      game.pauseView = "achievements";
+      updatePausePanel();
+    }
     game.interaction.hold.reset();
     game.interaction.nearest = null;
     refreshHUD();
@@ -5157,6 +5196,25 @@ function buildPauseAchievementsText() {
   return lines.join("\n");
 }
 
+function updatePausePanel() {
+  if (!pausePanel || !pausePanelContent) return;
+  if (!game || !game.paused || game.ending || dialogue.active) return;
+
+  if (game.pauseView === "fragments") {
+    pausePanelContent.textContent = buildPauseFragmentsText();
+  } else if (game.pauseView === "achievements") {
+    pausePanelContent.textContent = buildPauseAchievementsText();
+  } else {
+    pausePanelContent.textContent = buildPauseHelpText();
+  }
+
+  if (pauseTabBtns && pauseTabBtns.length > 0) {
+    pauseTabBtns.forEach((btn) => {
+      btn.classList.toggle("is-active", btn.dataset.view === game.pauseView);
+    });
+  }
+}
+
 function refreshHUD() {
   const doneCount = getDoneTaskCount();
   inventoryText.textContent = `${doneCount} / 3`;
@@ -5171,6 +5229,14 @@ function refreshHUD() {
   const shouldShowAudioPanel = game.paused && !game.ending && !dialogue.active;
   if (pauseAudioPanel) {
     pauseAudioPanel.classList.toggle("hidden", !shouldShowAudioPanel);
+  }
+  const shouldShowPausePanel = game.paused && !game.ending && !dialogue.active;
+  if (pausePanel) {
+    pausePanel.classList.toggle("hidden", !shouldShowPausePanel);
+    pausePanel.setAttribute("aria-hidden", shouldShowPausePanel ? "false" : "true");
+    if (shouldShowPausePanel) {
+      updatePausePanel();
+    }
   }
 
   objectiveText.textContent = buildObjectiveChecklistText();
@@ -6693,15 +6759,7 @@ function drawImageContainTop(context, image, dx, dy, dw, dh) {
 }
 
 function drawPauseOverlay() {
-  ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
-  ctx.fillRect(0, 0, WORLD.width, WORLD.height);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.font = "28px sans-serif";
-  ctx.textAlign = "center";
-  ctx.fillText("PAUSED", WORLD.width / 2, WORLD.height / 2);
-  ctx.font = "16px sans-serif";
-  ctx.fillText("Pキーで再開", WORLD.width / 2, WORLD.height / 2 + 30);
+  // HTMLのポーズパネルで表示するため、Canvas側は空実装にする。
 }
 
 function drawDebugOverlay() {

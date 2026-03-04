@@ -69,6 +69,23 @@
           フラッシュ軽減
         </label>
       </div>
+
+      <div id="pausePanel" class="pause-panel hidden" aria-hidden="true">
+        <div class="pause-panel-card">
+          <div class="pause-panel-header">
+            <span class="pause-panel-title">PAUSED</span>
+            <div class="pause-panel-tabs">
+              <button class="pause-tab-btn is-active" type="button" data-view="help">操作説明</button>
+              <button class="pause-tab-btn" type="button" data-view="fragments">シナリオ</button>
+              <button class="pause-tab-btn" type="button" data-view="achievements">実績</button>
+            </div>
+          </div>
+          <div id="pausePanelContent" class="pause-panel-content"></div>
+          <div class="pause-panel-footer">
+            <button id="pauseResumeBtn" class="pause-resume-btn" type="button">再開 (P)</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <section class="hud">
