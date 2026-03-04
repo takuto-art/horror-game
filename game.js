@@ -1701,7 +1701,11 @@ function createMap1LobbyData() {
       h: 100,
       color: "#55655a",
       blocking: false,
-      interaction: [{ speaker: "悠斗", text: "非常口。今はまだ開かない。" }],
+      interaction: [
+        { speaker: "悠斗", text: "非常口……鍵がかかってる。パネルも死んでる。" },
+        { speaker: "悠斗", text: "カードキーと、どこかで電源を入れないと開かない構造だ。" },
+        { speaker: "悠斗", text: "カードキーの心当たり……フロントで聞くしかないな。" },
+      ],
     },
   ];
 
@@ -2380,11 +2384,11 @@ function playIntroDialogue() {
     },
     {
       speaker: "悠斗",
-      text: "まぁ、夜勤の人が裏にいるだけか。……いるよな？",
+      text: "……入口が開かない。閉じ込められてる。",
     },
     {
       speaker: "悠斗",
-      text: "……いや、静かすぎる。空調の音、こんなに小さかったっけ。",
+      text: "落ち着け。非常口がどこかにあるはずだ。まず確認しよう。",
     },
     {
       speaker: "悠斗",
@@ -2396,15 +2400,23 @@ function playIntroDialogue() {
     },
     {
       speaker: "悠斗",
-      text: "とりあえず部屋。寝て、起きて、明日をやる。それだけ。",
+      text: "……待って。このホテル、なんで俺は来たんだっけ。終電を逃した、だけか？",
+    },
+    {
+      speaker: "悠斗",
+      text: "部屋を探せば、何か手がかりがあるかもしれない。",
+    },
+    {
+      speaker: "悠斗",
+      text: "このホテルのどこかに、俺がここにいる理由が残っているはずだ。",
+    },
+    {
+      speaker: "悠斗",
+      text: "断片が10個見つかれば、全部わかる気がする。ポーズ画面で確認できる。",
     },
     {
       speaker: "悠斗",
       text: "……連絡、また後でいいか。今夜は無理だ。",
-    },
-    {
-      speaker: "悠斗",
-      text: "……入口が開かない？ 落ち着け。フロントに非常解錠があるはずだ。",
     },
   ]);
 }
@@ -2749,7 +2761,7 @@ function updateHideState(dt) {
     }
   }
 
-  if (game.lightOn && hide.timer >= 3) {
+  if (game.lightOn && hide.startedUnderThreat && hide.timer >= 3) {
     const wasRoom203Escape = hide.mode === "room203_escape";
     hide.active = false;
     hide.sourceId = "";
@@ -3843,6 +3855,10 @@ function enterClosetHide(obj) {
   game.latestMemo = game.hide.mode === "room203_escape"
     ? "ロッカーに隠れた。今は絶対に動くな。"
     : "クローゼットに隠れた。長く息を潜めろ。";
+  const normalHideLines = [{ speaker: "悠斗", text: "……静かだ。" }];
+  if (game.lightOn) {
+    normalHideLines.push({ speaker: "悠斗", text: "……ライトが漏れそうだ。隠れるときは消したほうがいい。" });
+  }
   dialogue.start(
     game.hide.mode === "room203_escape"
       ? [
@@ -3850,10 +3866,7 @@ function enterClosetHide(obj) {
         { speaker: "悠斗", text: "ライトを消せ。点けたままだと見つかる……！" },
         { speaker: "悠斗", text: "……目の前にいる気がする。息を殺せ。" },
       ]
-      : [
-        { speaker: "悠斗", text: "ロッカーに身を押し込む。" },
-        { speaker: "悠斗", text: "……まだ動くな。呼吸を殺せ。" },
-      ],
+      : normalHideLines,
     { autoAdvanceMs: 750 }
   );
 }
@@ -4091,7 +4104,7 @@ function triggerInteractable(candidate) {
       triggerEventImageOverlay("frontdeskLedger", 1.4, 0.96);
       saveCheckpoint();
       setEmotion("違和感");
-      game.latestMemo = "台帳: 悠斗 / Room203 / 日付が明日になっている";
+      game.latestMemo = "台帳: 悠斗 / Room203 / カードキーは部屋にある。電源はB1";
       dialogue.start([
         { speaker: "悠斗", text: "……宿泊台帳。俺の名前がある。" },
         { speaker: "悠斗", text: "チェックイン日: 今日。チェックアウト日: 空欄。" },
@@ -4140,7 +4153,7 @@ function triggerInteractable(candidate) {
       setEmotion("確信");
       game.inventory.push("Card Key 203");
       triggerEventImageOverlay("cardkeyScene", 1.15, 0.98);
-      game.latestMemo = "Room203メモ: 非常口の解錠には電源が必要";
+      game.latestMemo = "カードキー確保。あとはB1で電源を入れれば非常口が開く";
       playPickupSE();
       dialogue.start([
         { speaker: "悠斗", text: "……あいつの荷物がある。" },
@@ -4216,7 +4229,7 @@ function triggerInteractable(candidate) {
       saveCheckpoint();
       if (!game.flags.taskCShadowPlayed) {
         triggerShadowHint();
-        playEatSE();
+        playDissonanceSE();
         game.flags.taskCShadowPlayed = true;
         ambientAudio.setHighTensionFootsteps(true);
       }
@@ -4240,7 +4253,21 @@ function triggerInteractable(candidate) {
     if ((areAllTasksComplete() && game.world.exitDoor && game.world.exitDoor.unlocked) || game.debug) {
       triggerEscapeCinematic();
     } else {
-      dialogue.start([{ speaker: "悠斗", text: "非常口はまだ開かない。必要な作業を終えるんだ。" }]);
+      if (!game.tasks.taskAFrontDesk) {
+        dialogue.start([
+          { speaker: "悠斗", text: "非常口……鍵がかかってる。パネルも死んでる。" },
+          { speaker: "悠斗", text: "カードキーと、どこかで電源を入れないと開かない構造だ。" },
+          { speaker: "悠斗", text: "カードキーの心当たり……フロントで聞くしかないな。" },
+        ]);
+      } else if (game.tasks.taskBRoom203) {
+        dialogue.start([{ speaker: "悠斗", text: "電源がまだだ。B1のブレーカーを入れないと開かない。" }]);
+      } else {
+        dialogue.start([
+          { speaker: "悠斗", text: "非常口……鍵がかかってる。パネルも死んでる。" },
+          { speaker: "悠斗", text: "カードキーと、どこかで電源を入れないと開かない構造だ。" },
+          { speaker: "悠斗", text: "カードキーの心当たり……フロントで聞くしかないな。" },
+        ]);
+      }
     }
     return;
   }
@@ -5116,8 +5143,13 @@ function buildPauseAchievementsText() {
   ];
   for (const entry of entries) {
     if (entry.unlocked) unlockedCount += 1;
-    lines.push(`${entry.unlocked ? "✓ 達成" : "□ 未達"} ${entry.name}`);
-    lines.push(`  条件: ${entry.description}`);
+    if (entry.unlocked) {
+      lines.push(`✓ 達成 ${entry.name}`);
+      lines.push(`  条件: ${entry.description}`);
+    } else {
+      lines.push("□ 未達 ？？？");
+      lines.push("  条件: ？？？");
+    }
   }
   const percent = Math.round((unlockedCount / entries.length) * 100);
   lines.push("");
@@ -6387,7 +6419,7 @@ function drawChaseDangerOverlay() {
     ctx.fillStyle = `rgba(255, 185, 185, ${0.28 + pulse * 0.22})`;
     ctx.font = "bold 18px sans-serif";
     ctx.textAlign = "center";
-    ctx.fillText("背後にいる", WORLD.width / 2, 72);
+    ctx.fillText(game.hide.active ? "目の前にいる" : "背後にいる", WORLD.width / 2, 72);
   }
 }
 
@@ -6398,8 +6430,8 @@ function drawDarknessOverlay() {
   const darknessMultiplierByLight = game.lightOn
     ? 1.26
     : game.mapId === "map2" || game.mapId === "map3"
-      ? 1.20
-      : 1.90;
+      ? 1.24
+      : 1.95;
   const darkness = Math.max(0, Math.min(1, baseDarkness * game.settings.darknessMultiplier * darknessMultiplierByLight));
   if (darkness <= 0.01) return;
 
