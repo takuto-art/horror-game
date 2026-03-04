@@ -85,7 +85,7 @@ const LIGHT_RECOVER_PER_SEC = 2.1;
 const BLOOD_FLASH_DURATION = 0.18;
 const SHAKE_DURATION = 0.25;
 const SHADOW_HINT_DURATION = 0.15;
-const ESCAPE_CINEMATIC_DURATION = 2.2;
+const ESCAPE_CINEMATIC_DURATION = 3.4;
 const ENDROLL_DURATION = 58;
 const ROOM203_DOOR = { x: 822, y: 170, w: 56, h: 20 };
 const ROOM2_DOORS = [
@@ -640,6 +640,30 @@ function activateAudioSystems() {
   audioManager.activateByUserGesture();
   ambientAudio.activateByUserGesture();
 }
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    for (const record of Object.values(audioManager.bgm)) {
+      if (record && record.audio) record.audio.pause();
+    }
+    for (const record of Object.values(audioManager.sfx)) {
+      if (record && record.audio) record.audio.pause();
+    }
+    if (ambientAudio.context) {
+      ambientAudio.context.suspend().catch(() => {});
+    }
+  } else {
+    if (ambientAudio.context) {
+      ambientAudio.context.resume().catch(() => {});
+    }
+    const key = audioManager.currentBgmKey;
+    const record = key ? audioManager.bgm[key] : null;
+    if (record && record.available && record.audio.paused && audioManager.activated) {
+      record.audio.volume = audioManager.getEffectiveBgmVolume(key);
+      record.audio.play().catch(() => {});
+    }
+  }
+});
 
 function setAudioMuted(muted) {
   isAudioMuted = muted;
@@ -2656,6 +2680,28 @@ function update(dt) {
     if (wasJustPressed("4")) {
       game.pauseView = "audio";
       updatePausePanel();
+    }
+    if (wasJustPressed("arrowleft")) {
+      const pauseViews = ["help", "fragments", "achievements", "audio"];
+      const idx = pauseViews.indexOf(game.pauseView);
+      const nextIdx = idx <= 0 ? pauseViews.length - 1 : idx - 1;
+      game.pauseView = pauseViews[nextIdx];
+      updatePausePanel();
+    }
+    if (wasJustPressed("arrowright")) {
+      const pauseViews = ["help", "fragments", "achievements", "audio"];
+      const idx = pauseViews.indexOf(game.pauseView);
+      const nextIdx = idx < 0 || idx >= pauseViews.length - 1 ? 0 : idx + 1;
+      game.pauseView = pauseViews[nextIdx];
+      updatePausePanel();
+    }
+    if (pausePanelContent) {
+      if (wasJustPressed("arrowup")) {
+        pausePanelContent.scrollTop -= 36;
+      }
+      if (wasJustPressed("arrowdown")) {
+        pausePanelContent.scrollTop += 36;
+      }
     }
     game.interaction.hold.reset();
     game.interaction.nearest = null;
@@ -5049,7 +5095,7 @@ function buildPauseHelpText() {
     "・1 = 操作説明（今ここ）",
     "・2 = シナリオ整理（断片/推察を確認）",
     "・3 = 実績（達成率と条件）",
-    "・4 = 音量（BGM/環境音/暗さ）",
+    "・4 = 音量（BGM/環境音）",
     "",
     "ライトの仕様",
     "・手回し非常ライトなので、点灯中は残量が減る",
@@ -5440,12 +5486,20 @@ function drawEscapeCinematicOverlay() {
   ctx.fillRect(0, 0, WORLD.width, 88);
   ctx.fillRect(0, WORLD.height - 88, WORLD.width, 88);
 
+  const textAlpha = p < 0.72 ? Math.min(1, p * 1.4) : Math.max(0, 1 - (p - 0.72) / 0.28);
   ctx.textAlign = "center";
-  ctx.fillStyle = `rgba(245, 245, 250, ${Math.min(1, p * 1.4)})`;
+  ctx.fillStyle = `rgba(245, 245, 250, ${textAlpha})`;
   ctx.font = "bold 30px sans-serif";
   ctx.fillText("非常口の向こうから、夜風が流れ込む。", WORLD.width / 2, WORLD.height / 2 - 16);
   ctx.font = "20px sans-serif";
   ctx.fillText("生きて、ここまで来た。", WORLD.width / 2, WORLD.height / 2 + 26);
+
+  // 終端で黒にフェードしてからエンドロールへ繋ぐ。
+  const fadeOut = p < 0.68 ? 0 : Math.min(1, (p - 0.68) / 0.32);
+  if (fadeOut > 0) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${fadeOut * 0.96})`;
+    ctx.fillRect(0, 0, WORLD.width, WORLD.height);
+  }
 }
 
 function drawEndrollOverlay() {
