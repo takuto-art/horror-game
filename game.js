@@ -15,6 +15,14 @@ canvas.addEventListener("click", () => {
   canvas.focus();
   activateAudioSystems();
 });
+canvas.addEventListener("pointerdown", (event) => {
+  if (!isMobileDevice() || event.pointerType === "mouse") return;
+  if (!hasStartedGame) return;
+  requestFullscreenForMobile();
+  activateAudioSystems();
+  // スマホは画面直タップで「会話送り / 調べる」をできるようにする。
+  input.justPressed.add("space");
+});
 
 const inventoryText = document.getElementById("inventoryText");
 const objectiveText = document.getElementById("objectiveText");
@@ -25,6 +33,8 @@ const pausePanel = document.getElementById("pausePanel");
 const pausePanelContent = document.getElementById("pausePanelContent");
 const pauseResumeBtn = document.getElementById("pauseResumeBtn");
 const pauseTabBtns = document.querySelectorAll(".pause-tab-btn");
+const pauseAudioHome = pauseAudioPanel ? pauseAudioPanel.parentElement : null;
+let pausePanelRenderedView = "";
 const bgmVolumeSlider = document.getElementById("bgmVolume");
 const bgmVolumeValue = document.getElementById("bgmVolumeValue");
 const ambientVolumeSlider = document.getElementById("ambientVolume");
@@ -791,10 +801,18 @@ function playFragmentSE() {
 }
 
 function playHeartbeatSlowSE() {
+  const record = audioManager.sfx && audioManager.sfx.heartbeatSlow;
+  if (record && record.audio) {
+    record.audio.volume = 0.2;
+  }
   return audioManager.playSEIfStopped("heartbeatSlow");
 }
 
 function playHeartbeatFastSE() {
+  const record = audioManager.sfx && audioManager.sfx.heartbeatFast;
+  if (record && record.audio) {
+    record.audio.volume = 1;
+  }
   return audioManager.playSEIfStopped("heartbeatFast");
 }
 
@@ -867,7 +885,7 @@ function refreshControlHints() {
   if (controlsHint) {
     controlsHint.textContent = mobile
       ? "移動: 左下スティック | 調べる: 右下「調べる」(長押し可) | ライト: 右下「ライト」 | 一時停止: 右下「ポーズ」 | 会話送り: 調べるボタン/Enter"
-      : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H";
+      : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | デバッグ: H";
   }
 }
 
@@ -950,6 +968,16 @@ const mobileTouchState = {
 
 function setMobileKeyHeld(key, pressed, pointerId, element) {
   if (!key) return;
+  if (
+    pressed &&
+    game &&
+    game.flags &&
+    game.flags.introInputLocked &&
+    key !== "space" &&
+    key !== "enter"
+  ) {
+    return;
+  }
   if (pressed) {
     activateAudioSystems();
     if (!input.held.has(key)) {
@@ -2310,6 +2338,7 @@ function createInitialGameState() {
       lightTutorialShown: false,
       lightEmptyWarned: false,
       lightFirstOnExplained: false,
+      introInputLocked: false,
       pauseGuideShown: false,
       fragmentPauseHint3Shown: false,
       fragmentPauseHint6Shown: false,
@@ -2395,6 +2424,7 @@ function playIntroDialogue() {
   playTitleSE();
   // ライト説明を導入会話に統合して、後段トリガー時の体感ラグを避ける。
   game.flags.lightTutorialShown = true;
+  game.flags.introInputLocked = true;
   dialogue.start([
     {
       speaker: "悠斗",
@@ -2444,7 +2474,11 @@ function playIntroDialogue() {
       speaker: "悠斗",
       text: "……連絡、また後でいいか。今夜は無理だ。",
     },
-  ]);
+  ], {
+    onComplete: () => {
+      game.flags.introInputLocked = false;
+    },
+  });
 }
 
 function resetGame() {
@@ -2503,13 +2537,15 @@ function update(dt) {
     return;
   }
 
-  if (wasJustPressed("h")) {
+  const introInputLocked = !!(game && game.flags && game.flags.introInputLocked && dialogue.active);
+
+  if (!introInputLocked && wasJustPressed("h")) {
     game.debug = !game.debug;
     if (game.debug) {
       game.stats.usedDebug = true;
     }
   }
-  if (wasJustPressed("l", "shift")) {
+  if (!introInputLocked && wasJustPressed("l", "shift")) {
     toggleLight();
   }
 
@@ -2594,7 +2630,7 @@ function update(dt) {
 
   updateLightTutorialHint();
 
-  if (wasJustPressed("p")) {
+  if (!introInputLocked && wasJustPressed("p")) {
     game.paused = !game.paused;
     if (!game.paused && pausePanel) {
       pausePanel.classList.add("hidden");
@@ -2617,6 +2653,10 @@ function update(dt) {
       game.pauseView = "achievements";
       updatePausePanel();
     }
+    if (wasJustPressed("4")) {
+      game.pauseView = "audio";
+      updatePausePanel();
+    }
     game.interaction.hold.reset();
     game.interaction.nearest = null;
     refreshHUD();
@@ -2626,9 +2666,6 @@ function update(dt) {
   updateLightCharge(dt);
   updateWorldSfx(dt);
   updateHallucinationEvents(dt);
-
-  // Hold R to escape from stuck positions by warping to recent safe spot.
-  updateRescueHold(dt);
 
   if (game.hide.active) {
     stopStepSE();
@@ -2790,12 +2827,12 @@ function updateHideState(dt) {
     } else if (hide.monologueStage === 0 && hide.monologueTimer >= 2.1) {
       hide.monologueStage = 1;
       dialogue.start([
-        { speaker: "悠斗", text: "……鼓動がうるさい。落ち着け、まだ動くな。" },
+        { speaker: "悠斗", text: "……鼓動がうるさい。深呼吸しろ。" },
       ], { autoAdvanceMs: 1200 });
     } else if (hide.monologueStage === 1 && hide.monologueTimer >= 5.0) {
       hide.monologueStage = 2;
       dialogue.start([
-        { speaker: "悠斗", text: "息が浅い……。ここで音を立てたら終わる。" },
+        { speaker: "悠斗", text: "息が浅い……。少し落ち着いたら出よう。" },
       ], { autoAdvanceMs: 1200 });
     }
   }
@@ -4729,7 +4766,6 @@ function buildEndrollLines(achievementLines) {
     `プレイ時間: ${timeText}`,
     `捕まった回数: ${game.stats.caughtCount}回`,
     `追跡発生: ${game.stats.chaseStartCount}回`,
-    `救済ワープ使用: ${game.stats.rescueCount}回`,
     `探索したフロア: ${mapVisitCount}/3`,
     `デバッグ使用: ${game.stats.usedDebug ? "あり" : "なし"}`,
     "",
@@ -4976,21 +5012,6 @@ function getShakeOffset() {
   };
 }
 
-function updateRescueHold(dt) {
-  const holdingR = isHeld("r");
-  if (!holdingR) {
-    game.rescueHoldTimer = 0;
-    game.rescueTriggered = false;
-    return;
-  }
-
-  game.rescueHoldTimer += dt;
-  if (!game.rescueTriggered && game.rescueHoldTimer >= RESCUE_HOLD_SECONDS) {
-    warpToSafeSpot();
-    game.rescueTriggered = true;
-  }
-}
-
 function updateSafeSpot(dt) {
   game.safeSpotTimer += dt;
   if (game.safeSpotTimer < 1.2) return;
@@ -5001,17 +5022,6 @@ function updateSafeSpot(dt) {
   }
 }
 
-function warpToSafeSpot() {
-  if (!game.safeSpot) return;
-  const safe = spawnSafePosition(game.world, game.safeSpot);
-  game.player.x = safe.x;
-  game.player.y = safe.y;
-  if (game.stats) {
-    game.stats.rescueCount += 1;
-  }
-  game.latestMemo = "詰まりを解除した。落ち着いて進もう。";
-}
-
 function buildPauseHelpText() {
   const mobile = isMobileDevice();
   const moveHelp = mobile ? "・移動: 画面左下の360°スティック" : "・移動: WASD / 矢印";
@@ -5019,16 +5029,14 @@ function buildPauseHelpText() {
   const lightHelp = mobile ? "・ライト: 右下「ライト」ボタン" : "・ライト: Shift / L";
   const talkHelp = mobile ? "・会話送り: 右下「調べる」ボタン / Enter" : "・会話送り: Space / Enter（長押しで連続）";
   const pauseHelp = mobile ? "・ポーズ切替: 右下「ポーズ」ボタン" : "・ポーズ切替: P";
-  const rescueHelp = mobile ? "・詰まった時の救済: 画面外キーボード環境ではR長押し" : "・詰まったら R長押しで安全地点に戻れる";
 
   return [
     "一時停止チュートリアル",
-    "1: 操作説明  2: シナリオ整理  3: 実績",
+    "1: 操作説明  2: シナリオ整理  3: 実績  4: 音量",
     "",
     "まずここを見ればOK",
     "・迷ったら 2 で『シナリオ整理』を開く",
     "・やることは画面上の Task A/B/C を順に進めるだけ",
-    rescueHelp,
     "",
     "操作の基本",
     moveHelp,
@@ -5041,6 +5049,7 @@ function buildPauseHelpText() {
     "・1 = 操作説明（今ここ）",
     "・2 = シナリオ整理（断片/推察を確認）",
     "・3 = 実績（達成率と条件）",
+    "・4 = 音量（BGM/環境音/暗さ）",
     "",
     "ライトの仕様",
     "・手回し非常ライトなので、点灯中は残量が減る",
@@ -5119,7 +5128,7 @@ function buildPauseFragmentsText() {
   const collectedCount = getCollectedFragmentCount();
   const lines = [
     `シナリオ整理 (${collectedCount}/${entries.length})`,
-    "1: 操作説明  2: シナリオ整理  3: 実績",
+    "1: 操作説明  2: シナリオ整理  3: 実績  4: 音量",
     "",
   ];
   lines.push(...buildScenarioProgressLines());
@@ -5143,31 +5152,36 @@ function buildPauseFragmentsText() {
 }
 
 function getHiddenAchievementEntries() {
+  const escaped = !!game.tasks.escaped;
   return [
     {
       name: "一息で駆け抜けた",
-      description: "捕まらずに脱出する",
-      unlocked: game.stats.caughtCount === 0,
+      description: "一度も捕まらずに脱出する",
+      unlocked: escaped && game.stats.caughtCount === 0,
     },
     {
       name: "観察者",
-      description: "2Fの201/202/204/205をすべて確認",
-      unlocked: areAllPreRoomsChecked(),
+      description: "2Fの全客室を確認して脱出する",
+      unlocked: escaped && areAllPreRoomsChecked(),
     },
     {
       name: "暗闇の意志",
-      description: "ライトOFF状態で脱出する",
-      unlocked: game.stats.escapedWithLightOff,
+      description: "ライトを消したまま脱出する",
+      unlocked: escaped && !!game.stats.escapedWithLightOff,
     },
     {
-      name: "逃げ切る勘",
-      description: "救済ワープを使わず脱出する",
-      unlocked: game.stats.rescueCount === 0,
+      name: "記録の回収者",
+      description: "断片をすべて集めて脱出する",
+      unlocked: escaped && getCollectedFragmentCount() >= getTotalFragmentCount(),
     },
     {
-      name: "正規ルート",
-      description: "デバッグ無しで脱出する",
-      unlocked: !game.stats.usedDebug,
+      name: "完全脱出",
+      description: "すべての実績を達成して脱出する",
+      unlocked: escaped &&
+        game.stats.caughtCount === 0 &&
+        areAllPreRoomsChecked() &&
+        !!game.stats.escapedWithLightOff &&
+        getCollectedFragmentCount() >= getTotalFragmentCount(),
     },
   ];
 }
@@ -5177,7 +5191,7 @@ function buildPauseAchievementsText() {
   let unlockedCount = 0;
   const lines = [
     "実績一覧",
-    "1: 操作説明  2: シナリオ整理  3: 実績",
+    "1: 操作説明  2: シナリオ整理  3: 実績  4: 音量",
     "",
   ];
   for (const entry of entries) {
@@ -5199,18 +5213,46 @@ function buildPauseAchievementsText() {
 function updatePausePanel() {
   if (!pausePanel || !pausePanelContent) return;
   if (!game || !game.paused || game.ending || dialogue.active) return;
+  const targetView = game.pauseView || "help";
 
-  if (game.pauseView === "fragments") {
+  if (targetView === "audio") {
+    if (pausePanelRenderedView !== "audio") {
+      pausePanelContent.textContent = "";
+    }
+    if (pauseAudioPanel) {
+      pauseAudioPanel.classList.remove("hidden");
+      pauseAudioPanel.classList.add("pause-audio-embedded");
+      if (pauseAudioPanel.parentElement !== pausePanelContent) {
+        pausePanelContent.appendChild(pauseAudioPanel);
+      }
+    }
+  } else if (targetView === "fragments") {
     pausePanelContent.textContent = buildPauseFragmentsText();
-  } else if (game.pauseView === "achievements") {
+    if (pauseAudioPanel && pauseAudioHome && pauseAudioPanel.parentElement !== pauseAudioHome) {
+      pauseAudioPanel.classList.add("hidden");
+      pauseAudioPanel.classList.remove("pause-audio-embedded");
+      pauseAudioHome.appendChild(pauseAudioPanel);
+    }
+  } else if (targetView === "achievements") {
     pausePanelContent.textContent = buildPauseAchievementsText();
+    if (pauseAudioPanel && pauseAudioHome && pauseAudioPanel.parentElement !== pauseAudioHome) {
+      pauseAudioPanel.classList.add("hidden");
+      pauseAudioPanel.classList.remove("pause-audio-embedded");
+      pauseAudioHome.appendChild(pauseAudioPanel);
+    }
   } else {
     pausePanelContent.textContent = buildPauseHelpText();
+    if (pauseAudioPanel && pauseAudioHome && pauseAudioPanel.parentElement !== pauseAudioHome) {
+      pauseAudioPanel.classList.add("hidden");
+      pauseAudioPanel.classList.remove("pause-audio-embedded");
+      pauseAudioHome.appendChild(pauseAudioPanel);
+    }
   }
+  pausePanelRenderedView = targetView;
 
   if (pauseTabBtns && pauseTabBtns.length > 0) {
     pauseTabBtns.forEach((btn) => {
-      btn.classList.toggle("is-active", btn.dataset.view === game.pauseView);
+      btn.classList.toggle("is-active", btn.dataset.view === targetView);
     });
   }
 }
@@ -5226,7 +5268,7 @@ function refreshHUD() {
   if (emotionText) {
     emotionText.textContent = `感情: ${game.emotion}`;
   }
-  const shouldShowAudioPanel = game.paused && !game.ending && !dialogue.active;
+  const shouldShowAudioPanel = game.paused && !game.ending && !dialogue.active && game.pauseView === "audio";
   if (pauseAudioPanel) {
     pauseAudioPanel.classList.toggle("hidden", !shouldShowAudioPanel);
   }
@@ -5236,6 +5278,13 @@ function refreshHUD() {
     pausePanel.setAttribute("aria-hidden", shouldShowPausePanel ? "false" : "true");
     if (shouldShowPausePanel) {
       updatePausePanel();
+    } else {
+      pausePanelRenderedView = "";
+      if (pauseAudioPanel && pauseAudioHome && pauseAudioPanel.parentElement !== pauseAudioHome) {
+        pauseAudioPanel.classList.add("hidden");
+        pauseAudioPanel.classList.remove("pause-audio-embedded");
+        pauseAudioHome.appendChild(pauseAudioPanel);
+      }
     }
   }
 
@@ -5265,6 +5314,10 @@ function refreshHUD() {
     }
     if (game.pauseView === "achievements") {
       objectiveText.textContent = buildPauseAchievementsText();
+      return;
+    }
+    if (game.pauseView === "audio") {
+      objectiveText.textContent = buildPauseHelpText();
       return;
     }
     objectiveText.textContent = buildPauseHelpText();
@@ -7005,6 +7058,7 @@ function restoreFromCheckpoint() {
   if (typeof game.flags.finalChasePending === "undefined") game.flags.finalChasePending = false;
   if (typeof game.flags.lightTutorialShown === "undefined") game.flags.lightTutorialShown = false;
   if (typeof game.flags.lightFirstOnExplained === "undefined") game.flags.lightFirstOnExplained = false;
+  if (typeof game.flags.introInputLocked === "undefined") game.flags.introInputLocked = false;
   if (typeof game.flags.pauseGuideShown === "undefined") game.flags.pauseGuideShown = false;
   if (typeof game.flags.fragmentPauseHint3Shown === "undefined") game.flags.fragmentPauseHint3Shown = false;
   if (typeof game.flags.fragmentPauseHint6Shown === "undefined") game.flags.fragmentPauseHint6Shown = false;

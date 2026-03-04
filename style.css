@@ -335,7 +335,7 @@ body {
 
 .pause-panel-tabs {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 8px;
 }
 
@@ -389,6 +389,17 @@ body {
 
 .pause-resume-btn:hover {
   background: #2b3760;
+}
+
+.pause-audio.pause-audio-embedded {
+  position: static;
+  left: auto;
+  top: auto;
+  z-index: auto;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid rgba(170, 180, 210, 0.35);
+  background: rgba(10, 12, 20, 0.62);
 }
 
 .hidden {

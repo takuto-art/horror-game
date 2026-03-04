@@ -64,10 +64,6 @@
         <label for="darknessStrength">暗さ調整</label>
         <input id="darknessStrength" type="range" min="0.7" max="1" step="0.01" value="0.9" />
         <span id="darknessStrengthValue">0.90</span>
-        <label class="reduce-flash">
-          <input id="reduceFlash" type="checkbox" />
-          フラッシュ軽減
-        </label>
       </div>
 
       <div id="pausePanel" class="pause-panel hidden" aria-hidden="true">
@@ -78,6 +74,7 @@
               <button class="pause-tab-btn is-active" type="button" data-view="help">操作説明</button>
               <button class="pause-tab-btn" type="button" data-view="fragments">シナリオ</button>
               <button class="pause-tab-btn" type="button" data-view="achievements">実績</button>
+              <button class="pause-tab-btn" type="button" data-view="audio">音量</button>
             </div>
           </div>
           <div id="pausePanelContent" class="pause-panel-content"></div>
@@ -101,7 +98,7 @@
 [ ] Task C: B1で非常電源(ブレーカー)をON
 [ ] 1F非常口から脱出</div>
       <div class="memo" id="memoText">メモ: まだ何も見つかっていない。</div>
-      <div id="controlsHint" class="controls">移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | 詰み解除: R長押し | デバッグ: H</div>
+      <div id="controlsHint" class="controls">移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | デバッグ: H</div>
     </section>
   </main>
 
