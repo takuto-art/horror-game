@@ -1124,6 +1124,10 @@ function bindMobileJoystick() {
   mobileJoystickBase.addEventListener("pointercancel", onUp);
   mobileJoystickBase.addEventListener("lostpointercapture", onUp);
   mobileJoystickBase.addEventListener("contextmenu", (event) => event.preventDefault());
+  // iOS Safari対策: ジョイスティック上のダブルタップズームを無効化。
+  mobileJoystickBase.addEventListener("dblclick", (event) => event.preventDefault());
+  mobileJoystickBase.addEventListener("touchstart", (event) => event.preventDefault(), { passive: false });
+  mobileJoystickBase.addEventListener("touchend", (event) => event.preventDefault(), { passive: false });
 }
 
 function updateMobileJoystickFromEvent(event) {
