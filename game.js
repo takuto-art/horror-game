@@ -909,12 +909,12 @@ function refreshControlHints() {
   const mobile = isMobileDevice();
   if (titleControlsHint) {
     titleControlsHint.textContent = mobile
-      ? "移動: 左下スティック　|　調べる: 右下「調べる」ボタン"
+      ? "移動: 左下スティック　|　調べる: 画面タップ"
       : "移動: WASD / 矢印　|　調べる: Space";
   }
   if (controlsHint) {
     controlsHint.textContent = mobile
-      ? "移動: 左下スティック | 調べる: 右下「調べる」(長押し可) | ライト: 右下「ライト」 | 一時停止: 右下「ポーズ」 | 会話送り: 調べるボタン/Enter"
+      ? "移動: 左下スティック | 調べる: 画面タップ | 会話送り: 画面タップ/Enter | ライト: 右下「ライト」 | 一時停止: 右上⏸"
       : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | デバッグ: H";
   }
 }
@@ -1061,6 +1061,7 @@ function bindMobileControls() {
   for (const button of buttons) {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
+      event.stopPropagation();
       const key = button.dataset.key;
       requestFullscreenForMobile();
       setMobileKeyHeld(key, true, event.pointerId, button);
@@ -1070,6 +1071,7 @@ function bindMobileControls() {
     });
     const release = (event) => {
       event.preventDefault();
+      event.stopPropagation();
       const keyFromPointer = mobileTouchState.pointerToKey.get(event.pointerId) || button.dataset.key;
       setMobileKeyHeld(keyFromPointer, false, event.pointerId, button);
     };
@@ -1087,6 +1089,7 @@ function bindMobileJoystick() {
 
   const onDown = (event) => {
     event.preventDefault();
+    event.stopPropagation();
     activateAudioSystems();
     requestFullscreenForMobile();
     mobileTouchState.joystickPointerId = event.pointerId;
@@ -1099,12 +1102,14 @@ function bindMobileJoystick() {
   const onMove = (event) => {
     if (mobileTouchState.joystickPointerId !== event.pointerId) return;
     event.preventDefault();
+    event.stopPropagation();
     updateMobileJoystickFromEvent(event);
   };
 
   const onUp = (event) => {
     if (mobileTouchState.joystickPointerId !== event.pointerId) return;
     event.preventDefault();
+    event.stopPropagation();
     mobileTouchState.joystickPointerId = null;
     resetMobileJoystick();
   };
