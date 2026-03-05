@@ -114,8 +114,8 @@ body {
   width: 132px;
   height: 132px;
   border-radius: 50%;
-  border: 1px solid rgba(210, 220, 255, 0.22);
-  background: rgba(15, 22, 36, 0.16);
+  border: 1px solid rgba(210, 220, 255, 0.3);
+  background: rgba(15, 22, 36, 0.25);
   pointer-events: auto;
   touch-action: none;
   --jx: 0px;
@@ -130,7 +130,7 @@ body {
   height: 56px;
   border-radius: 50%;
   border: 1px solid rgba(230, 238, 255, 0.65);
-  background: rgba(82, 106, 168, 0.3);
+  background: rgba(82, 106, 168, 0.45);
   transform: translate(calc(-50% + var(--jx)), calc(-50% + var(--jy)));
 }
 
@@ -176,19 +176,6 @@ body {
   height: 40px;
   border-radius: 12px;
   font-size: 0.82rem;
-}
-
-.mobile-pause-icon {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
-  font-size: 1.1rem;
-  line-height: 1;
-  display: grid;
-  place-items: center;
 }
 
 .overlay {
@@ -461,28 +448,18 @@ body {
 }
 
 @media (hover: none) and (pointer: coarse) {
-  html,
-  body {
-    width: 100vw;
-    height: 100svh;
-    overflow: hidden;
-    background: #000;
-  }
-
   body {
     padding: 0;
     align-items: stretch;
-    min-height: 100svh;
+    min-height: 100dvh;
   }
 
   .game-shell {
     width: 100vw;
-    height: 100svh;
-    min-height: 100svh;
+    height: 100dvh;
     gap: 0;
     display: flex;
     flex-direction: column;
-    background: #000;
   }
 
   .game-title {
@@ -493,11 +470,10 @@ body {
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    background: #000;
+    background: #08090f;
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
   }
 
   #gameCanvas {
