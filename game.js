@@ -924,7 +924,7 @@ function refreshControlHints() {
   if (controlsHint) {
     controlsHint.textContent = mobile
       ? "移動: 左下スティック | 調べる: 画面タップ | ライト: 右下「ライト」 | 一時停止: 右上「ポーズ」 | 会話送り: 画面タップ/Enter"
-      : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | デバッグ: H";
+      : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P";
   }
 }
 
