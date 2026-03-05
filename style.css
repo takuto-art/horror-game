@@ -7,7 +7,7 @@ body {
   margin: 0;
   min-height: 100vh;
   font-family: "Trebuchet MS", "Segoe UI", sans-serif;
-  background: #000;
+  background: radial-gradient(circle at top, #121629 0%, #08090f 62%, #040407 100%);
   color: #f1f1f1;
   display: flex;
   align-items: flex-start;
@@ -20,7 +20,6 @@ body {
   width: min(980px, 95vw);
   display: grid;
   gap: 12px;
-  background: radial-gradient(circle at top, #121629 0%, #08090f 62%, #040407 100%);
 }
 
 .game-title {
@@ -35,7 +34,6 @@ body {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
-  background: radial-gradient(circle at top, #121629 0%, #08090f 62%, #040407 100%);
 }
 
 #gameCanvas {
@@ -116,8 +114,8 @@ body {
   width: 132px;
   height: 132px;
   border-radius: 50%;
-  border: 1px solid rgba(210, 220, 255, 0.2);
-  background: rgba(15, 22, 36, 0.12);
+  border: 1px solid rgba(210, 220, 255, 0.3);
+  background: rgba(15, 22, 36, 0.25);
   pointer-events: auto;
   touch-action: none;
   --jx: 0px;
@@ -131,8 +129,8 @@ body {
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  border: 1px solid rgba(230, 238, 255, 0.34);
-  background: rgba(82, 106, 168, 0.25);
+  border: 1px solid rgba(230, 238, 255, 0.65);
+  background: rgba(82, 106, 168, 0.45);
   transform: translate(calc(-50% + var(--jx)), calc(-50% + var(--jy)));
 }
 
@@ -178,19 +176,6 @@ body {
   height: 40px;
   border-radius: 12px;
   font-size: 0.82rem;
-}
-
-.mobile-pause-icon {
-  position: absolute;
-  right: 12px;
-  top: 12px;
-  width: 52px;
-  height: 52px;
-  border-radius: 999px;
-  font-size: 1.1rem;
-  line-height: 1;
-  display: grid;
-  place-items: center;
 }
 
 .overlay {
@@ -255,43 +240,6 @@ body {
 
 .overlay button:hover {
   background: #2b3760;
-}
-
-.pwa-hint {
-  margin-top: 10px;
-  padding: 10px 14px;
-  border: 1px solid rgba(180, 200, 255, 0.4);
-  border-radius: 10px;
-  background: rgba(20, 28, 50, 0.88);
-  font-size: 0.85rem;
-  line-height: 1.4;
-  text-align: left;
-  position: relative;
-  width: min(320px, 92%);
-}
-
-.pwa-hint-title {
-  margin: 0 0 4px 0;
-  font-weight: 700;
-  color: #d6e4ff;
-}
-
-.pwa-hint-detail {
-  margin: 0;
-  color: #b8c8f0;
-}
-
-#pwaHintClose {
-  position: absolute;
-  top: 6px;
-  right: 8px;
-  margin: 0;
-  background: none;
-  border: none;
-  color: #8896c0;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0;
 }
 
 .pause-audio {
@@ -500,37 +448,18 @@ body {
 }
 
 @media (hover: none) and (pointer: coarse) {
-  html {
-    width: 100vw;
-    height: 100%;
-    max-height: 100%;
-    overflow: hidden;
-    background: #000;
-  }
-
   body {
-    width: 100vw;
-    height: 100%;
-    max-height: 100%;
-    overflow-x: hidden;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    padding: 0;
     align-items: stretch;
-    min-height: calc(100% + 1px);
+    min-height: 100dvh;
   }
 
   .game-shell {
     width: 100vw;
     height: 100dvh;
-    height: calc(var(--viewport-height, 100dvh));
-    min-height: 100dvh;
-    max-height: 100dvh;
-    max-height: -webkit-fill-available;
     gap: 0;
     display: flex;
     flex-direction: column;
-    background: #000;
   }
 
   .game-title {
@@ -541,18 +470,16 @@ body {
     border: 0;
     border-radius: 0;
     box-shadow: none;
-    background: #000;
+    background: #08090f;
     flex: 1;
     display: flex;
     flex-direction: column;
-    min-height: 0;
   }
 
   #gameCanvas {
     flex: 1;
     width: 100%;
     height: 100%;
-    max-height: 100dvh;
     object-fit: contain;
   }
 

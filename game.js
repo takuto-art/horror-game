@@ -55,9 +55,6 @@ const endingTitle = document.getElementById("endingTitle");
 const endingText = document.getElementById("endingText");
 const titleScreen = document.getElementById("titleScreen");
 const startGameButton = document.getElementById("startGameButton");
-const pwaHint = document.getElementById("pwaHint");
-const pwaHintDetail = document.getElementById("pwaHintDetail");
-const pwaHintClose = document.getElementById("pwaHintClose");
 const controlsHint = document.getElementById("controlsHint");
 const titleControlsHint = document.getElementById("titleControlsHint");
 const mobileControls = document.getElementById("mobileControls");
@@ -65,7 +62,6 @@ const mobileJoystickBase = document.getElementById("mobileJoystickBase");
 const mobileStatusTask = document.getElementById("mobileStatusTask");
 const mobileStatusObjective = document.getElementById("mobileStatusObjective");
 const orientationNotice = document.getElementById("orientationNotice");
-let pwaHintInitialized = false;
 
 const WORLD = {
   width: 960,
@@ -887,77 +883,13 @@ function isPortraitViewport() {
   return window.innerHeight > window.innerWidth;
 }
 
-function getViewportHeight() {
-  return window.visualViewport ? window.visualViewport.height : window.innerHeight;
-}
-
-function syncViewportHeightVar() {
-  document.documentElement.style.setProperty("--viewport-height", `${getViewportHeight()}px`);
-}
-
-function nudgeAddressBarHide() {
-  if (!isMobileDevice()) return;
-  setTimeout(() => window.scrollTo(0, 1), 0);
-}
-
-function isStandalonePWA() {
-  return window.matchMedia("(display-mode: standalone)").matches || window.navigator.standalone === true;
-}
-
 function requestFullscreenForMobile() {
   if (!isMobileDevice()) return;
   if (document.fullscreenElement) return;
-  const root = document.documentElement;
-  const tryOrientationLock = () => {
-    if (!screen.orientation || !screen.orientation.lock) return;
-    screen.orientation.lock("landscape").catch(() => {});
-  };
-
-  if (root.requestFullscreen) {
-    root.requestFullscreen()
-      .then(tryOrientationLock)
-      .catch(() => {
-        if (canvas.requestFullscreen) {
-          canvas.requestFullscreen().then(tryOrientationLock).catch(() => {});
-        }
-      });
-    return;
+  const target = document.documentElement;
+  if (target.requestFullscreen) {
+    target.requestFullscreen().catch(() => {});
   }
-  if (canvas.requestFullscreen) {
-    canvas.requestFullscreen().then(tryOrientationLock).catch(() => {});
-  }
-}
-
-function setupPWAHint() {
-  if (pwaHintInitialized) return;
-  pwaHintInitialized = true;
-  if (!pwaHint || !pwaHintDetail || !pwaHintClose) return;
-  if (!isMobileDevice() || isStandalonePWA()) return;
-  let dismissed = false;
-  try {
-    dismissed = localStorage.getItem("pwaHintDismissed") === "1";
-  } catch (_) {
-    dismissed = false;
-  }
-  if (dismissed) return;
-
-  const ua = navigator.userAgent || "";
-  const isIOS = /iPad|iPhone|iPod/i.test(ua);
-  const isAndroid = /Android/i.test(ua);
-  if (isIOS) {
-    pwaHintDetail.textContent = "Safari のメニュー → 「ホーム画面に追加」をタップしてください。";
-  } else if (isAndroid) {
-    pwaHintDetail.textContent = "ブラウザのメニュー（⋮）→ 「ホーム画面に追加」をタップしてください。";
-  } else {
-    pwaHintDetail.textContent = "ブラウザのメニューから「ホーム画面に追加」を選択してください。";
-  }
-  pwaHint.classList.remove("hidden");
-  pwaHintClose.addEventListener("click", () => {
-    pwaHint.classList.add("hidden");
-    try {
-      localStorage.setItem("pwaHintDismissed", "1");
-    } catch (_) {}
-  }, { once: true });
 }
 
 function registerServiceWorker() {
@@ -977,12 +909,12 @@ function refreshControlHints() {
   const mobile = isMobileDevice();
   if (titleControlsHint) {
     titleControlsHint.textContent = mobile
-      ? "移動: 左下スティック　|　調べる: 画面タップ"
+      ? "移動: 左下スティック　|　調べる: 右下「調べる」ボタン"
       : "移動: WASD / 矢印　|　調べる: Space";
   }
   if (controlsHint) {
     controlsHint.textContent = mobile
-      ? "移動: 左下スティック | 調べる: 画面タップ | 会話送り: 画面タップ/Enter | ライト: 右下「ライト」 | 一時停止: 右上⏸"
+      ? "移動: 左下スティック | 調べる: 右下「調べる」(長押し可) | ライト: 右下「ライト」 | 一時停止: 右下「ポーズ」 | 会話送り: 調べるボタン/Enter"
       : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | デバッグ: H";
   }
 }
@@ -1129,7 +1061,6 @@ function bindMobileControls() {
   for (const button of buttons) {
     button.addEventListener("pointerdown", (event) => {
       event.preventDefault();
-      event.stopPropagation();
       const key = button.dataset.key;
       requestFullscreenForMobile();
       setMobileKeyHeld(key, true, event.pointerId, button);
@@ -1139,7 +1070,6 @@ function bindMobileControls() {
     });
     const release = (event) => {
       event.preventDefault();
-      event.stopPropagation();
       const keyFromPointer = mobileTouchState.pointerToKey.get(event.pointerId) || button.dataset.key;
       setMobileKeyHeld(keyFromPointer, false, event.pointerId, button);
     };
@@ -1157,7 +1087,6 @@ function bindMobileJoystick() {
 
   const onDown = (event) => {
     event.preventDefault();
-    event.stopPropagation();
     activateAudioSystems();
     requestFullscreenForMobile();
     mobileTouchState.joystickPointerId = event.pointerId;
@@ -1170,14 +1099,12 @@ function bindMobileJoystick() {
   const onMove = (event) => {
     if (mobileTouchState.joystickPointerId !== event.pointerId) return;
     event.preventDefault();
-    event.stopPropagation();
     updateMobileJoystickFromEvent(event);
   };
 
   const onUp = (event) => {
     if (mobileTouchState.joystickPointerId !== event.pointerId) return;
     event.preventDefault();
-    event.stopPropagation();
     mobileTouchState.joystickPointerId = null;
     resetMobileJoystick();
   };
@@ -1235,11 +1162,6 @@ window.addEventListener("resize", updateOrientationNotice);
 window.addEventListener("orientationchange", updateOrientationNotice);
 window.addEventListener("resize", refreshControlHints);
 window.addEventListener("orientationchange", refreshControlHints);
-window.addEventListener("resize", syncViewportHeightVar);
-window.addEventListener("orientationchange", syncViewportHeightVar);
-if (window.visualViewport) {
-  window.visualViewport.addEventListener("resize", syncViewportHeightVar);
-}
 registerServiceWorker();
 refreshControlHints();
 
@@ -2642,7 +2564,6 @@ function startGameFromTitle() {
 }
 
 if (startGameButton) {
-  startGameButton.addEventListener("pointerdown", requestFullscreenForMobile);
   startGameButton.addEventListener("click", startGameFromTitle);
 }
 
@@ -7337,20 +7258,9 @@ function restoreFromCheckpoint() {
 // ------------------------------------------------------------
 // 10) Start
 // ------------------------------------------------------------
-document.addEventListener("DOMContentLoaded", () => {
-  syncViewportHeightVar();
-  nudgeAddressBarHide();
-  setupPWAHint();
-});
-
-syncViewportHeightVar();
-setupPWAHint();
-nudgeAddressBarHide();
-
 game = createInitialGameState();
 refreshHUD();
 requestAnimationFrame((timestamp) => {
-  syncViewportHeightVar();
   lastTime = timestamp;
   requestAnimationFrame(gameLoop);
 });

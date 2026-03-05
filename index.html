@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#05060b" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -34,16 +34,10 @@
         </div>
 
         <div class="mobile-actions">
+          <button class="mobile-btn mobile-action" type="button" data-key="space">調べる/次へ</button>
           <button class="mobile-btn mobile-action" type="button" data-key="l">ライト</button>
+          <button class="mobile-btn mobile-action" type="button" data-key="p">ポーズ</button>
         </div>
-
-        <button
-          id="mobilePauseButton"
-          class="mobile-btn mobile-pause-icon"
-          type="button"
-          data-key="p"
-          aria-label="ポーズ"
-        >⏸</button>
       </div>
 
       <div id="titleScreen" class="overlay">
@@ -51,11 +45,6 @@
         <p>Corridor Escape</p>
         <p id="titleControlsHint" class="title-controls">移動: WASD / 矢印　|　調べる: Space</p>
         <button id="startGameButton" type="button">ゲームスタート</button>
-        <div id="pwaHint" class="pwa-hint hidden">
-          <p class="pwa-hint-title">📱 ホームに追加すると快適にプレイできます</p>
-          <p id="pwaHintDetail" class="pwa-hint-detail"></p>
-          <button id="pwaHintClose" type="button">×</button>
-        </div>
       </div>
 
       <div id="endingScreen" class="overlay hidden">
