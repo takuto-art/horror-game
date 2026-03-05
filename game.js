@@ -62,6 +62,15 @@ const mobileJoystickBase = document.getElementById("mobileJoystickBase");
 const mobileStatusTask = document.getElementById("mobileStatusTask");
 const mobileStatusObjective = document.getElementById("mobileStatusObjective");
 const orientationNotice = document.getElementById("orientationNotice");
+if (endingScreen) {
+  endingScreen.addEventListener("pointerdown", (event) => {
+    if (!hasStartedGame) return;
+    if (!game || !game.ending) return;
+    if (event.pointerType === "mouse") return;
+    event.preventDefault();
+    input.justPressed.add("space");
+  });
+}
 
 const WORLD = {
   width: 960,
@@ -909,12 +918,12 @@ function refreshControlHints() {
   const mobile = isMobileDevice();
   if (titleControlsHint) {
     titleControlsHint.textContent = mobile
-      ? "移動: 左下スティック　|　調べる: 右下「調べる」ボタン"
+      ? "移動: 左下スティック　|　調べる: 画面タップ"
       : "移動: WASD / 矢印　|　調べる: Space";
   }
   if (controlsHint) {
     controlsHint.textContent = mobile
-      ? "移動: 左下スティック | 調べる: 右下「調べる」(長押し可) | ライト: 右下「ライト」 | 一時停止: 右下「ポーズ」 | 会話送り: 調べるボタン/Enter"
+      ? "移動: 左下スティック | 調べる: 画面タップ | ライト: 右下「ライト」 | 一時停止: 右上「ポーズ」 | 会話送り: 画面タップ/Enter"
       : "移動: WASD / 矢印 | 調べる: Space(長押し可) | ライト: Shift/L | 会話送り: Space/Enter | 一時停止: P | デバッグ: H";
   }
 }
@@ -1358,7 +1367,7 @@ class DialogueManager {
 
     this.ctx.fillStyle = "#b9b9c7";
     this.ctx.font = "14px sans-serif";
-    this.ctx.fillText("Space/Enter: 次へ", textX, boxY + boxH - 12);
+    this.ctx.fillText(isMobileDevice() ? "タップ/Enter: 次へ" : "Space/Enter: 次へ", textX, boxY + boxH - 12);
   }
 
   drawPortrait(x, y, size, speaker) {
@@ -2476,6 +2485,7 @@ function createInitialGameState() {
 }
 
 function playIntroDialogue() {
+  const mobile = isMobileDevice();
   playTitleSE();
   // ライト説明を導入会話に統合して、後段トリガー時の体感ラグを避ける。
   game.flags.lightTutorialShown = true;
@@ -2503,11 +2513,15 @@ function playIntroDialogue() {
     },
     {
       speaker: "悠斗",
-      text: "……暗い。まずライトをつける。Shift か L で切り替えられるはずだ。",
+      text: mobile
+        ? "……暗い。まずライトをつける。右下の「ライト」ボタンで切り替えられるはずだ。"
+        : "……暗い。まずライトをつける。Shift か L で切り替えられるはずだ。",
     },
     {
       speaker: "悠斗",
-      text: "状況を整理したい時はPで一時停止できる。ポーズ中に操作説明も見返せる。",
+      text: mobile
+        ? "状況を整理したい時は右上の「ポーズ」で一時停止できる。ポーズ中に操作説明も見返せる。"
+        : "状況を整理したい時はPで一時停止できる。ポーズ中に操作説明も見返せる。",
     },
     {
       speaker: "悠斗",
@@ -2548,6 +2562,23 @@ function resetGame() {
   audioManager.playBGM("main");
   playIntroDialogue();
   saveCheckpoint();
+  refreshHUD();
+  updateOrientationNotice();
+}
+
+function returnToTitleScreen() {
+  mapManager.resetMaps();
+  game = createInitialGameState();
+  hasStartedGame = false;
+  endingScreen.classList.add("hidden");
+  if (titleScreen) {
+    titleScreen.classList.remove("hidden");
+  }
+  stopStepSE();
+  stopHeartbeatSEs();
+  ambientAudio.setHighTensionFootsteps(false);
+  audioManager.playBGM("main");
+  refreshControlHints();
   refreshHUD();
   updateOrientationNotice();
 }
@@ -2624,7 +2655,7 @@ function update(dt) {
       if (game.endingType === "Caught") {
         restoreFromCheckpoint();
       } else {
-        resetGame();
+        returnToTitleScreen();
       }
     }
     refreshHUD();
@@ -2825,7 +2856,12 @@ function updateLightTutorialHint() {
   if (game.mapId !== "map1" || game.ending || game.paused || dialogue.active || mapManager.transition.active) return;
   game.flags.lightTutorialShown = true;
   dialogue.start([
-    { speaker: "悠斗", text: "……暗い。まずライトをつける。Shift か L で切り替えられるはずだ。" },
+    {
+      speaker: "悠斗",
+      text: isMobileDevice()
+        ? "……暗い。まずライトをつける。右下の「ライト」ボタンで切り替えられるはずだ。"
+        : "……暗い。まずライトをつける。Shift か L で切り替えられるはずだ。",
+    },
   ], { autoAdvanceMs: 1300 });
 }
 
@@ -3841,6 +3877,8 @@ function findNearestInteractable() {
 }
 
 function buildInteractableCandidates() {
+  const interactPrompt = isMobileDevice() ? "タップ: 調べる" : "Space: 調べる";
+  const moveBasePrompt = isMobileDevice() ? "タップ: 移動" : "Space: 移動";
   const candidates = [];
 
   for (const keyItem of game.world.keys) {
@@ -3852,7 +3890,7 @@ function buildInteractableCandidates() {
       y: keyItem.y,
       radius: keyItem.radius,
       range: INTERACT_RANGE,
-      prompt: "Space: 調べる",
+      prompt: interactPrompt,
       ref: keyItem,
     });
   }
@@ -3862,14 +3900,14 @@ function buildInteractableCandidates() {
     if (isNonSelectableLower2FObject(obj.id)) continue;
     const hasInteraction = Array.isArray(obj.interaction) ? obj.interaction.length > 0 : !!obj.interaction;
     if (!hasInteraction && !obj.mapChange && !obj.id.endsWith("_wardrobe")) continue;
-    let movePrompt = "Space: 移動";
+    let movePrompt = moveBasePrompt;
     if (obj.mapChange) {
       const mapLabel = obj.mapChange.toMapId === "map1"
         ? "1F"
         : obj.mapChange.toMapId === "map2"
           ? "2F"
           : "B1";
-      movePrompt = `Space: ${mapLabel}へ移動`;
+      movePrompt = `${isMobileDevice() ? "タップ" : "Space"}: ${mapLabel}へ移動`;
     }
     candidates.push({
       id: `obj:${obj.id}`,
@@ -3879,7 +3917,7 @@ function buildInteractableCandidates() {
       w: obj.w,
       h: obj.h,
       range: INTERACT_RANGE + 16,
-      prompt: obj.mapChange ? movePrompt : "Space: 調べる",
+      prompt: obj.mapChange ? movePrompt : interactPrompt,
       ref: obj,
     });
   }
@@ -4845,7 +4883,6 @@ function buildEndrollLines(achievementLines) {
     `捕まった回数: ${game.stats.caughtCount}回`,
     `追跡発生: ${game.stats.chaseStartCount}回`,
     `探索したフロア: ${mapVisitCount}/3`,
-    `デバッグ使用: ${game.stats.usedDebug ? "あり" : "なし"}`,
     "",
     ...fragmentLines,
     "",
@@ -4856,7 +4893,6 @@ function buildEndrollLines(achievementLines) {
     "ゲーム開発: Takuto Taniho",
     "レベルデザイン: Takuto Taniho",
     "サウンド演出: Takuto Taniho",
-    "デバッグ: Takuto Taniho",
     "ほぼ全部: Takuto Taniho",
     "",
     ...achievementLines,
@@ -5103,10 +5139,10 @@ function updateSafeSpot(dt) {
 function buildPauseHelpText() {
   const mobile = isMobileDevice();
   const moveHelp = mobile ? "・移動: 画面左下の360°スティック" : "・移動: WASD / 矢印";
-  const interactHelp = mobile ? "・調べる: 右下「調べる」ボタン（長押しで連続）" : "・調べる: Space（長押しで連続）";
+  const interactHelp = mobile ? "・調べる: 画面タップ" : "・調べる: Space（長押しで連続）";
   const lightHelp = mobile ? "・ライト: 右下「ライト」ボタン" : "・ライト: Shift / L";
-  const talkHelp = mobile ? "・会話送り: 右下「調べる」ボタン / Enter" : "・会話送り: Space / Enter（長押しで連続）";
-  const pauseHelp = mobile ? "・ポーズ切替: 右下「ポーズ」ボタン" : "・ポーズ切替: P";
+  const talkHelp = mobile ? "・会話送り: 画面タップ / Enter" : "・会話送り: Space / Enter（長押しで連続）";
+  const pauseHelp = mobile ? "・ポーズ切替: 右上「ポーズ」ボタン" : "・ポーズ切替: P";
 
   return [
     "一時停止チュートリアル",
@@ -5339,6 +5375,9 @@ function refreshHUD() {
   const doneCount = getDoneTaskCount();
   inventoryText.textContent = `${doneCount} / 3`;
   memoText.textContent = `メモ: ${game.latestMemo}`;
+  if (mobileControls) {
+    mobileControls.classList.toggle("hidden", !hasStartedGame || !!game.effects.endrollActive);
+  }
   if (mobileStatusTask && mobileStatusObjective) {
     mobileStatusTask.textContent = `タスク ${doneCount} / 3`;
     mobileStatusObjective.textContent = `次: ${buildMobileNextActionText()}`;
@@ -5370,14 +5409,14 @@ function refreshHUD() {
 
   if (game.ending) {
     const endingGuide = game.endingType === "Caught"
-      ? "Space/Enterで直前タスクのチェックポイントから再開。"
-      : "Space/Enterで最初からやり直す。";
+      ? (isMobileDevice() ? "画面タップ/Enterで直前タスクのチェックポイントから再開。" : "Space/Enterで直前タスクのチェックポイントから再開。")
+      : (isMobileDevice() ? "画面タップ/Enterでタイトルに戻る。" : "Space/Enterでタイトルに戻る。");
     objectiveText.textContent = `${buildObjectiveChecklistText()}\n\n${endingGuide}`;
     return;
   }
 
   if (dialogue.active) {
-    objectiveText.textContent = `${buildObjectiveChecklistText()}\n\n会話中: Space / Enter で進める。`;
+    objectiveText.textContent = `${buildObjectiveChecklistText()}\n\n会話中: ${isMobileDevice() ? "画面タップ / Enter" : "Space / Enter"} で進める。`;
     return;
   }
 
@@ -6450,7 +6489,7 @@ function drawExitDoor() {
   ctx.fillStyle = "#f7f7f7";
   ctx.font = "12px sans-serif";
   ctx.textAlign = "right";
-  ctx.fillText(door.unlocked ? "出口(Space)" : "施錠中", door.x - 8, door.y + door.h / 2);
+  ctx.fillText(door.unlocked ? (isMobileDevice() ? "出口(タップ)" : "出口(Space)") : "施錠中", door.x - 8, door.y + door.h / 2);
 }
 
 function drawInteractHint() {
@@ -6477,7 +6516,7 @@ function drawInteractHint() {
   // Prompt UI near the target.
   const promptX = target.kind === "key" ? target.x : target.x + target.w / 2;
   const promptY = target.kind === "key" ? target.y - 22 : target.y - 12;
-  const text = target.prompt || "Space: 調べる";
+  const text = target.prompt || (isMobileDevice() ? "タップ: 調べる" : "Space: 調べる");
   ctx.font = "13px sans-serif";
   ctx.textAlign = "center";
 
@@ -6671,6 +6710,7 @@ function drawDarknessOverlay() {
 
 function drawLightMeter() {
   if (!hasStartedGame || game.effects.endrollActive || game.ending) return;
+  const mobileAlpha = isMobileDevice() ? 0.62 : 1;
   const meterW = 182;
   const meterH = 16;
   const x = WORLD.width - meterW - 18;
@@ -6678,13 +6718,13 @@ function drawLightMeter() {
   const ratio = Math.max(0, Math.min(1, game.light.charge / game.light.maxCharge));
   const fillW = Math.round((meterW - 4) * ratio);
 
-  ctx.fillStyle = "rgba(10, 12, 20, 0.72)";
+  ctx.fillStyle = `rgba(10, 12, 20, ${0.72 * mobileAlpha})`;
   ctx.fillRect(x - 8, y - 24, meterW + 16, meterH + 34);
-  ctx.strokeStyle = "rgba(180, 190, 215, 0.65)";
+  ctx.strokeStyle = `rgba(180, 190, 215, ${0.65 * mobileAlpha})`;
   ctx.lineWidth = 1;
   ctx.strokeRect(x - 8, y - 24, meterW + 16, meterH + 34);
 
-  ctx.fillStyle = "rgba(20, 24, 35, 0.92)";
+  ctx.fillStyle = `rgba(20, 24, 35, ${0.92 * mobileAlpha})`;
   ctx.fillRect(x, y, meterW, meterH);
   const grad = ctx.createLinearGradient(x, y, x + meterW, y);
   grad.addColorStop(0, "#c65252");
@@ -6692,10 +6732,10 @@ function drawLightMeter() {
   grad.addColorStop(1, "#5ccf83");
   ctx.fillStyle = grad;
   ctx.fillRect(x + 2, y + 2, fillW, meterH - 4);
-  ctx.strokeStyle = "rgba(235, 240, 255, 0.55)";
+  ctx.strokeStyle = `rgba(235, 240, 255, ${0.55 * mobileAlpha})`;
   ctx.strokeRect(x + 0.5, y + 0.5, meterW - 1, meterH - 1);
 
-  ctx.fillStyle = "rgba(240, 245, 255, 0.95)";
+  ctx.fillStyle = `rgba(240, 245, 255, ${0.95 * mobileAlpha})`;
   ctx.font = "bold 12px sans-serif";
   ctx.textAlign = "left";
   ctx.fillText(`LIGHT ${game.lightOn ? "ON" : "OFF"}`, x, y - 8);
@@ -6751,7 +6791,7 @@ function drawHideOverlay() {
   ctx.textAlign = "center";
   ctx.font = "12px sans-serif";
   ctx.fillStyle = "rgba(232, 232, 242, 0.86)";
-  ctx.fillText("Spaceで隠れ場所から出る", WORLD.width / 2, WORLD.height - 30);
+  ctx.fillText(isMobileDevice() ? "タップで隠れ場所から出る" : "Spaceで隠れ場所から出る", WORLD.width / 2, WORLD.height - 30);
 }
 
 function getMapDarknessBase() {
@@ -6809,7 +6849,7 @@ function drawEventImageOverlay() {
   ctx.textAlign = "center";
   ctx.font = "bold 16px sans-serif";
   ctx.fillStyle = "rgba(245, 245, 250, 0.96)";
-  ctx.fillText("Space / Enter / E で進む", WORLD.width / 2, WORLD.height - 30);
+  ctx.fillText(isMobileDevice() ? "画面タップ / Enter で進む" : "Space / Enter / E で進む", WORLD.width / 2, WORLD.height - 30);
   ctx.restore();
 }
 

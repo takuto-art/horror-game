@@ -34,23 +34,23 @@
         </div>
 
         <div class="mobile-actions">
-          <button class="mobile-btn mobile-action" type="button" data-key="space">調べる/次へ</button>
           <button class="mobile-btn mobile-action" type="button" data-key="l">ライト</button>
-          <button class="mobile-btn mobile-action" type="button" data-key="p">ポーズ</button>
         </div>
+        <button id="mobilePauseButton" class="mobile-btn mobile-action mobile-pause-top" type="button" data-key="p">ポーズ</button>
       </div>
 
       <div id="titleScreen" class="overlay">
         <h2>深夜ホテル</h2>
         <p>Corridor Escape</p>
         <p id="titleControlsHint" class="title-controls">移動: WASD / 矢印　|　調べる: Space</p>
+        <p class="title-controls mobile-only-title-note">スマホ: 「ホームに追加」で上部タブを気にせず遊べます。縦横を切り替えるとブラウザUIが隠れやすくなります。</p>
         <button id="startGameButton" type="button">ゲームスタート</button>
       </div>
 
       <div id="endingScreen" class="overlay hidden">
         <h2 id="endingTitle">Escaped</h2>
         <p id="endingText">やっと…外だ。</p>
-        <p class="overlay-help">Space / Enter でリスタート</p>
+        <p class="overlay-help">画面タップ / Space / Enter でリスタート</p>
       </div>
 
       <div id="pauseAudioPanel" class="pause-audio hidden">
