@@ -35,6 +35,12 @@ const pauseResumeBtn = document.getElementById("pauseResumeBtn");
 const pauseTabBtns = document.querySelectorAll(".pause-tab-btn");
 const pauseAudioHome = pauseAudioPanel ? pauseAudioPanel.parentElement : null;
 let pausePanelRenderedView = "";
+const pauseKeyRepeat = {
+  arrowleft: { timer: 0, repeating: false },
+  arrowright: { timer: 0, repeating: false },
+  arrowup: { timer: 0, repeating: false },
+  arrowdown: { timer: 0, repeating: false },
+};
 const bgmVolumeSlider = document.getElementById("bgmVolume");
 const bgmVolumeValue = document.getElementById("bgmVolumeValue");
 const ambientVolumeSlider = document.getElementById("ambientVolume");
@@ -981,6 +987,31 @@ function wasJustPressed(...keys) {
 
 function isHeld(...keys) {
   return keys.some((k) => input.held.has(k));
+}
+
+function consumePauseHeldKey(key, dt) {
+  const state = pauseKeyRepeat[key];
+  if (!state) return false;
+
+  if (wasJustPressed(key)) {
+    state.timer = 0;
+    state.repeating = false;
+    return true;
+  }
+  if (!isHeld(key)) {
+    state.timer = 0;
+    state.repeating = false;
+    return false;
+  }
+
+  state.timer += dt;
+  const interval = state.repeating ? 0.09 : 0.28;
+  if (state.timer >= interval) {
+    state.timer = 0;
+    state.repeating = true;
+    return true;
+  }
+  return false;
 }
 
 // Mobile touch buttons map into the same input set as keyboard.
@@ -2589,7 +2620,7 @@ function update(dt) {
     stopStepSE();
     stopHeartbeatSEs();
     // Caught時だけ「最初から」ではなく、直前タスクのチェックポイントへ戻す。
-    if (wasJustPressed("r")) {
+    if (wasJustPressed("space", "enter")) {
       if (game.endingType === "Caught") {
         restoreFromCheckpoint();
       } else {
@@ -2681,14 +2712,14 @@ function update(dt) {
       game.pauseView = "audio";
       updatePausePanel();
     }
-    if (wasJustPressed("arrowleft")) {
+    if (consumePauseHeldKey("arrowleft", dt)) {
       const pauseViews = ["help", "fragments", "achievements", "audio"];
       const idx = pauseViews.indexOf(game.pauseView);
       const nextIdx = idx <= 0 ? pauseViews.length - 1 : idx - 1;
       game.pauseView = pauseViews[nextIdx];
       updatePausePanel();
     }
-    if (wasJustPressed("arrowright")) {
+    if (consumePauseHeldKey("arrowright", dt)) {
       const pauseViews = ["help", "fragments", "achievements", "audio"];
       const idx = pauseViews.indexOf(game.pauseView);
       const nextIdx = idx < 0 || idx >= pauseViews.length - 1 ? 0 : idx + 1;
@@ -2696,10 +2727,10 @@ function update(dt) {
       updatePausePanel();
     }
     if (pausePanelContent) {
-      if (wasJustPressed("arrowup")) {
+      if (consumePauseHeldKey("arrowup", dt)) {
         pausePanelContent.scrollTop -= 36;
       }
-      if (wasJustPressed("arrowdown")) {
+      if (consumePauseHeldKey("arrowdown", dt)) {
         pausePanelContent.scrollTop += 36;
       }
     }
@@ -4094,6 +4125,7 @@ function triggerInteractable(candidate) {
     obj.id === "b1_door_lower_left" ||
     obj.id === "b1_door_lower_right"
   ) {
+    // 地下ドアは常に開閉音を鳴らす。
     playOldDoorSE();
     obj.blocking = false;
     obj.interaction = [];
@@ -5338,8 +5370,8 @@ function refreshHUD() {
 
   if (game.ending) {
     const endingGuide = game.endingType === "Caught"
-      ? "Rで直前タスクのチェックポイントから再開。"
-      : "Rで最初からやり直す。";
+      ? "Space/Enterで直前タスクのチェックポイントから再開。"
+      : "Space/Enterで最初からやり直す。";
     objectiveText.textContent = `${buildObjectiveChecklistText()}\n\n${endingGuide}`;
     return;
   }
