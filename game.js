@@ -2325,6 +2325,7 @@ function createInitialGameState() {
       taskAFrontDesk: false,
       taskBRoom203: false,
       taskCBreaker: false,
+      escaped: false,
     },
     roomChecks: {
       room201: false,
@@ -4721,6 +4722,7 @@ function triggerEnding(title, text) {
 
 function triggerEscapeCinematic() {
   if (game.effects.escapeCinematicActive || game.ending) return;
+  game.tasks.escaped = true;
   game.stats.escapedWithLightOff = !game.lightOn;
   game.effects.escapeCinematicActive = true;
   game.effects.escapeCinematicTimer = 0;
@@ -7125,6 +7127,7 @@ function restoreFromCheckpoint() {
     resetGame();
     return;
   }
+  const preservedStats = game.stats ? JSON.parse(JSON.stringify(game.stats)) : null;
 
   // 2Fで捕まった場合は、追跡が近すぎる再開を避けるため Task B前へ戻す。
   const shouldRollbackBeforeTaskB = (
@@ -7146,7 +7149,13 @@ function restoreFromCheckpoint() {
   game.player.y = safe.y;
   game.safeSpot = { x: safe.x, y: safe.y };
 
-  game.tasks = { ...cp.tasks };
+  game.tasks = {
+    taskAFrontDesk: false,
+    taskBRoom203: false,
+    taskCBreaker: false,
+    escaped: false,
+    ...cp.tasks,
+  };
   game.roomChecks = { ...cp.roomChecks };
   game.roomDoorsOpened = cp.roomDoorsOpened
     ? { ...cp.roomDoorsOpened }
@@ -7160,9 +7169,12 @@ function restoreFromCheckpoint() {
   game.emotion = cp.emotion;
   game.flags = { ...cp.flags };
   game.fragments = normalizeFragmentsState(cp.fragments);
-  game.stats = cp.stats
-    ? JSON.parse(JSON.stringify(cp.stats))
-    : {
+  if (preservedStats) {
+    game.stats = preservedStats;
+  } else if (cp.stats) {
+    game.stats = JSON.parse(JSON.stringify(cp.stats));
+  } else {
+    game.stats = {
       runTimeSec: 0,
       caughtCount: 0,
       rescueCount: 0,
@@ -7171,6 +7183,7 @@ function restoreFromCheckpoint() {
       mapVisited: { map1: true, map2: false, map3: false },
       escapedWithLightOff: false,
     };
+  }
   if (typeof game.flags.forceChaseActive === "undefined") game.flags.forceChaseActive = false;
   if (typeof game.flags.b1FeedingNoticed === "undefined") game.flags.b1FeedingNoticed = false;
   if (typeof game.flags.b1FeedingRetreatWarned === "undefined") game.flags.b1FeedingRetreatWarned = false;
